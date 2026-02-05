@@ -1,74 +1,25 @@
-import sqlalchemy as sa
-from utils.db_manager import get_engine
-from sklearn.linear_model import LinearRegression
-import pandas as pd
-import json
-
+from autogluon.tabular import TabularPredictor
+import shap
+from utils.db_manager import load_df, save_df_to_table
 
 class ModelTrainingAgent:
-    """
-    Trains a simple ML model using engineered features
-    and stores model metadata + metrics in the database.
-    """
-
     def __init__(self, project_id: str):
         self.project_id = project_id
 
-    def run(self):
-        engine = get_engine()
+    def run(self) -> str:
+        df = load_df(self.project_id, "feature_store")  # Assume features ready
+        label = 'target'  # Assume or detect
+        predictor = TabularPredictor(label=label).fit(df)  # Auto ML/DL
 
-        # 1️⃣ Load engineered features from DB
-        features_df = pd.read_sql(
-            "SELECT features FROM feature_store WHERE project_id = %s",
-            engine,
-            params=(self.project_id,)
-        )
+        # Best model + metrics
+        leaderboard = predictor.leaderboard()
+        best_model = leaderboard.iloc[0]['model']
+        metrics = {"rmse": leaderboard.iloc[0]['score_val'], "best_model": best_model}
 
-        if features_df.empty:
-            raise ValueError("No features found in feature_store")
+        # SHAP explainability
+        explainer = shap.Explainer(predictor)
+        shap_values = explainer(df)
+        shap.summary_plot(shap_values, df, show=False, file_name=f"artifacts/{self.project_id}/shap.png")
 
-        # 2️⃣ Extract feature JSON (dict)
-        feature_dict = features_df.iloc[0]["features"]
-
-        if not isinstance(feature_dict, dict):
-            raise TypeError("Features must be a dictionary")
-
-        # 3️⃣ Convert JSON → numeric DataFrame
-        X = pd.json_normalize(feature_dict)
-
-        if X.empty:
-            raise ValueError("Feature matrix is empty after normalization")
-
-        # 4️⃣ Dummy target (placeholder for now)
-        # In real systems, this will come from labels table
-        y = [1]
-
-        # 5️⃣ Train model
-        model = LinearRegression()
-        model.fit(X, y)
-
-        # 6️⃣ Prepare metrics
-        metrics = {
-            "model": "LinearRegression",
-            "num_features": X.shape[1],
-            "feature_names": X.columns.tolist(),
-            "coefficients": model.coef_.tolist()
-        }
-
-        # 7️⃣ Store results in DB
-        with engine.begin() as conn:
-            conn.execute(
-                sa.text("""
-                    INSERT INTO model_results
-                    (project_id, model_name, metrics)
-                    VALUES (:pid, :model, :metrics)
-                """),
-                {
-                    "pid": self.project_id,
-                    "model": "LinearRegression",
-                    "metrics": json.dumps(metrics)
-                }
-            )
-
-        # 8️⃣ Return artifact location
-        return "models/linear_regression_v1"
+        save_df_to_table(pd.DataFrame([metrics]), "model_results", self.project_id)
+        return "model_results/best"
