@@ -1,41 +1,27 @@
-import pandas as pd
-from utils.db_manager import get_engine
-
+import streamlit as st
+from streamlit_option_menu import option_menu
+from streamlit_aggrid import AgGrid
+import plotly.express as px
+from utils.db_manager import load_df
 
 class DashboardAgent:
-    """
-    Fetches all project data needed for visualization.
-    """
-
     def __init__(self, project_id: str):
         self.project_id = project_id
-        self.engine = get_engine()
 
-    def get_data(self):
-        """Used by Streamlit UI"""
-        return {
-            "project": pd.read_sql(
-                "SELECT * FROM project_metadata WHERE project_id=%s",
-                self.engine,
-                params=(self.project_id,),
-            ),
-            "agents": pd.read_sql(
-                "SELECT * FROM agent_status WHERE project_id=%s ORDER BY started_at",
-                self.engine,
-                params=(self.project_id,),
-            ),
-            "features": pd.read_sql(
-                "SELECT * FROM feature_store WHERE project_id=%s",
-                self.engine,
-                params=(self.project_id,),
-            ),
-            "models": pd.read_sql(
-                "SELECT * FROM model_results WHERE project_id=%s",
-                self.engine,
-                params=(self.project_id,),
-            ),
+    def run(self) -> dict:
+        # Load all data
+        project = load_df(self.project_id, "project_metadata")
+        agents = load_df(self.project_id, "agent_status")
+        features = load_df(self.project_id, "feature_store")
+        models = load_df(self.project_id, "model_results")
+
+        # Interactive components (better than PowerBI: code-dynamic, real-time)
+        data = {
+            "project": project,
+            "agents": agents,
+            "features": features,
+            "models": models
         }
+        return data  # app.py renders
 
-    def run(self):
-        """Used only for pipeline logging"""
-        return "dashboard/rendered"
+    # Note: Rendering happens in app.py for interactivity
