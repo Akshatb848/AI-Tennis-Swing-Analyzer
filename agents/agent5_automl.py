@@ -1,53 +1,19 @@
-import sqlalchemy as sa
-from utils.db_manager import get_engine
-from utils.llm_client import run_llm
-import json
-
+from utils.llm_client import query_llm
+from utils.db_manager import save_df_to_table
 
 class AutoMLAgent:
-    """
-    Uses LLM to recommend ML models based on engineered features.
-    Stores results in model_recommendations table.
-    """
-
-    def __init__(self, project_id: str):
+    def __init__(self, project_id: str, proposal: str = ""):
         self.project_id = project_id
-        self.engine = get_engine()
+        self.proposal = proposal
 
-    def run(self):
-        # 1️ Prompt for LLM
-        prompt = """
-        You are an expert AutoML system.
-        Given engineered tabular features, recommend suitable ML models.
-        Explain briefly why each model is suitable.
-        Assume this is a regression problem unless stated otherwise.
-        """
+    def run(self) -> str:
+        # Use provided LLM proposal or generate
+        if not self.proposal:
+            df = self._load_df()
+            prompt = f"Propose ML/DL/RL model for data: {df.head().to_string()}. Rationale:"
+            self.proposal = query_llm(prompt)
 
-        response_text = run_llm(prompt=prompt)
-
-        # 2️ Structured fields (match DB schema)
-        problem_type = "regression"
-
-        recommended_models = {
-            "recommendations": response_text
-        }
-
-        rationale = response_text
-
-        # 3️ Insert into DB (MATCHES TABLE COLUMNS)
-        with self.engine.begin() as conn:
-            conn.execute(
-                sa.text("""
-                    INSERT INTO model_recommendations
-                    (project_id, problem_type, recommended_models, rationale)
-                    VALUES (:pid, :ptype, :models, :rationale)
-                """),
-                {
-                    "pid": self.project_id,
-                    "ptype": problem_type,
-                    "models": json.dumps(recommended_models),
-                    "rationale": rationale,
-                }
-            )
-
-        return "automl/recommendations_v1"
+        # Recommendations (e.g., AutoGluon handles ML/DL)
+        recs = {"proposal": self.proposal, "framework": "AutoGluon for auto-implementation"}
+        save_df_to_table(pd.DataFrame([recs]), "model_recs", self.project_id)
+        return "model_recs/latest"
