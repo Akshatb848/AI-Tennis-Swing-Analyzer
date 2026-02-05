@@ -1,42 +1,14 @@
 import pandas as pd
-from utils.db_manager import get_engine
-
+from utils.db_manager import load_table
 
 class DashboardAgent:
     def __init__(self, project_id: str):
         self.project_id = project_id
-        self.engine = get_engine()
 
     def run(self):
-        data = {}
-
-        data["project"] = pd.read_sql(
-            "SELECT * FROM project_metadata WHERE project_id = %(pid)s",
-            self.engine,
-            params={"pid": self.project_id},
-        )
-
-        data["agents"] = pd.read_sql(
-            """
-            SELECT *
-            FROM agent_status
-            WHERE project_id = %(pid)s
-            ORDER BY started_at
-            """,
-            self.engine,
-            params={"pid": self.project_id},
-        )
-
-        data["features"] = pd.read_sql(
-            "SELECT * FROM feature_store WHERE project_id = %(pid)s",
-            self.engine,
-            params={"pid": self.project_id},
-        )
-
-        data["models"] = pd.read_sql(
-            "SELECT * FROM model_results WHERE project_id = %(pid)s",
-            self.engine,
-            params={"pid": self.project_id},
-        )
-
-        return data
+        return {
+            "project": load_table("project_metadata", self.project_id),
+            "agents": load_table("agent_status", self.project_id),
+            "features": load_table("feature_store", self.project_id),
+            "models": load_table("model_results", self.project_id),
+        }
