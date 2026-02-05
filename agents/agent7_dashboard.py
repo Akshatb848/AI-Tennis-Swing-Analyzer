@@ -1,6 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-from streamlit_aggrid import AgGrid
+from st_aggrid import AgGrid
 import plotly.express as px
 from utils.db_manager import load_df
 
