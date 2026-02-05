@@ -281,3 +281,9 @@ def reset_failed_agents(project_id: str):
             """),
             {"pid": project_id}
         )
+def load_df(query: str, params: tuple | None = None):
+    """
+    Load SQL query results into a pandas DataFrame.
+    """
+    engine = get_engine()
+    return pd.read_sql(query, engine, params=params)
