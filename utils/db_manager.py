@@ -10,15 +10,11 @@ from sqlalchemy.pool import NullPool
 def get_engine():
     db_url = os.getenv("DATABASE_URL")
 
-    if not db_url:
-        raise RuntimeError(
-            "DATABASE_URL is not set. Configure it in Streamlit Secrets."
-        )
-
     return create_engine(
         db_url,
         pool_pre_ping=True,
         future=True,
+        connect_args={"sslmode": "require"},
     )
 
 
