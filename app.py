@@ -9,6 +9,11 @@ specialized agents and interprets results.
 import streamlit as st
 import pandas as pd
 import numpy as np
+
+# CRITICAL: Disable pandas 3.x StringDtype globally.
+# Without this, pd.read_csv() creates StringDtype columns which crash
+# numpy operations (corr, get_dummies, factorize) across all agents.
+pd.set_option("future.infer_string", False)
 import asyncio
 import json
 from datetime import datetime

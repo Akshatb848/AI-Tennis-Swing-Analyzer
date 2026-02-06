@@ -81,7 +81,7 @@ def _prepare_features(df: pd.DataFrame, target_column: str) -> tuple:
 
     # Encode remaining categorical columns
     encoded_cols = []
-    cat_cols = [c for c in feature_df.select_dtypes(include=['object', 'category', 'str']).columns]
+    cat_cols = [c for c in feature_df.select_dtypes(include=['object', 'category', 'string']).columns]
     for col in cat_cols:
         n_unique = feature_df[col].nunique()
         if n_unique <= 2:

@@ -177,7 +177,7 @@ class AutoMLAgent(BaseAgent):
             "n_samples": n_samples,
             "n_features": n_features,
             "n_numeric": len(features.select_dtypes(include=[np.number]).columns),
-            "n_categorical": len(features.select_dtypes(include=['object', 'category', 'str']).columns),
+            "n_categorical": len(features.select_dtypes(include=['object', 'category', 'string']).columns),
             "is_classification": is_classification,
             "suggested_task_type": "classification" if is_classification else "regression",
             "class_balance_ratio": class_balance,

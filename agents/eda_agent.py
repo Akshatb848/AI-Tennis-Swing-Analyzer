@@ -106,7 +106,7 @@ class EDAAgent(BaseAgent):
                 "max": float(data.max()), "skewness": float(data.skew()), "kurtosis": float(data.kurtosis())
             }
         
-        for col in df.select_dtypes(include=['object', 'category', 'str']).columns:
+        for col in df.select_dtypes(include=['object', 'category', 'string']).columns:
             data = df[col].dropna()
             if len(data) == 0:
                 continue

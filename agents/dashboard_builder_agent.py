@@ -70,7 +70,7 @@ class DashboardBuilderAgent(BaseAgent):
             n_rows = len(df)
             n_cols = len(df.columns)
             n_numeric = len(df.select_dtypes(include=[np.number]).columns)
-            n_categorical = len(df.select_dtypes(include=['object', 'category', 'str']).columns)
+            n_categorical = len(df.select_dtypes(include=['object', 'category', 'string']).columns)
             missing_pct = df.isnull().sum().sum() / (n_rows * n_cols) * 100 if (n_rows * n_cols) > 0 else 0
             dup_count = int(df.duplicated().sum())
 
@@ -106,7 +106,7 @@ class DashboardBuilderAgent(BaseAgent):
         if df is not None:
             charts = []
             numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-            categorical_cols = df.select_dtypes(include=['object', 'category', 'str']).columns.tolist()
+            categorical_cols = df.select_dtypes(include=['object', 'category', 'string']).columns.tolist()
 
             # Numeric distributions (top 6)
             for col in numeric_cols[:6]:

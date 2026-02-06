@@ -191,7 +191,7 @@ class FeatureEngineerAgent(BaseAgent):
                 self.feature_report["created_features"].append(f'{col}_log')
 
         # ---- Encode categorical ----
-        cat_cols = [c for c in df.select_dtypes(include=['object', 'category', 'str']).columns if c != target]
+        cat_cols = [c for c in df.select_dtypes(include=['object', 'category', 'string']).columns if c != target]
         for col in cat_cols:
             n_unique = df[col].nunique()
             if n_unique == 2:
@@ -233,7 +233,7 @@ class FeatureEngineerAgent(BaseAgent):
                 df[col] = df[col].astype(object)
 
         target = task.get("target_column")
-        for col in [c for c in df.select_dtypes(include=['object', 'category', 'str']).columns if c != target]:
+        for col in [c for c in df.select_dtypes(include=['object', 'category', 'string']).columns if c != target]:
             if df[col].nunique() <= 10:
                 dummies = pd.get_dummies(df[col], prefix=col, drop_first=True)
                 df = pd.concat([df.drop(columns=[col]), dummies], axis=1)

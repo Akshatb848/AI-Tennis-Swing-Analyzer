@@ -2,6 +2,13 @@
 Data Science Agent Platform - Agents Module
 """
 
+import pandas as pd
+
+# CRITICAL: Disable pandas 3.x StringDtype globally.
+# Without this, pd.read_csv() creates StringDtype columns which crash
+# numpy operations (corr, get_dummies, factorize) across all agents.
+pd.set_option("future.infer_string", False)
+
 from .base_agent import (
     BaseAgent, 
     AgentState, 
