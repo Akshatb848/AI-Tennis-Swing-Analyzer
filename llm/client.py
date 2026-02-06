@@ -1,0 +1,304 @@
+"""
+LLM Client - Provider-agnostic interface for OpenAI, Anthropic, and Ollama
+"""
+
+import json
+import logging
+import os
+from abc import ABC, abstractmethod
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+
+class LLMProvider(Enum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
+
+
+class LLMClient(ABC):
+    """Abstract LLM client interface."""
+
+    @abstractmethod
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
+    ) -> str:
+        """Send messages and return the assistant's text response."""
+        pass
+
+    @abstractmethod
+    async def chat_json(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ) -> Dict[str, Any]:
+        """Send messages and parse the response as JSON."""
+        pass
+
+
+class OpenAIClient(LLMClient):
+    """OpenAI API client."""
+
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY", "")
+        self.model = model
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            from openai import AsyncOpenAI
+            self._client = AsyncOpenAI(api_key=self.api_key)
+        return self._client
+
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
+    ) -> str:
+        client = self._get_client()
+        full_messages = []
+        if system:
+            full_messages.append({"role": "system", "content": system})
+        full_messages.extend(messages)
+
+        response = await client.chat.completions.create(
+            model=self.model,
+            messages=full_messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return response.choices[0].message.content or ""
+
+    async def chat_json(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ) -> Dict[str, Any]:
+        text = await self.chat(messages, system=system, temperature=temperature, max_tokens=max_tokens)
+        return _extract_json(text)
+
+
+class AnthropicClient(LLMClient):
+    """Anthropic API client."""
+
+    def __init__(self, api_key: Optional[str] = None, model: str = "claude-sonnet-4-5-20250929"):
+        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+        self.model = model
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            from anthropic import AsyncAnthropic
+            self._client = AsyncAnthropic(api_key=self.api_key)
+        return self._client
+
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
+    ) -> str:
+        client = self._get_client()
+        response = await client.messages.create(
+            model=self.model,
+            system=system or "",
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return response.content[0].text if response.content else ""
+
+    async def chat_json(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ) -> Dict[str, Any]:
+        text = await self.chat(messages, system=system, temperature=temperature, max_tokens=max_tokens)
+        return _extract_json(text)
+
+
+class OllamaClient(LLMClient):
+    """Ollama local model client."""
+
+    def __init__(self, model: str = "llama3.1", base_url: str = "http://localhost:11434"):
+        self.model = model
+        self.base_url = base_url.rstrip("/")
+
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
+    ) -> str:
+        import aiohttp
+
+        full_messages = []
+        if system:
+            full_messages.append({"role": "system", "content": system})
+        full_messages.extend(messages)
+
+        payload = {
+            "model": self.model,
+            "messages": full_messages,
+            "stream": False,
+            "options": {"temperature": temperature, "num_predict": max_tokens},
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{self.base_url}/api/chat", json=payload) as resp:
+                data = await resp.json()
+                return data.get("message", {}).get("content", "")
+
+    async def chat_json(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ) -> Dict[str, Any]:
+        text = await self.chat(messages, system=system, temperature=temperature, max_tokens=max_tokens)
+        return _extract_json(text)
+
+
+class FallbackClient(LLMClient):
+    """Rule-based fallback when no LLM API key is configured.
+
+    This keeps the platform functional without any external API dependency
+    by using simple heuristics for intent detection and templated responses
+    for result interpretation.
+    """
+
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
+    ) -> str:
+        last_msg = messages[-1]["content"] if messages else ""
+        return self._rule_based_response(last_msg)
+
+    async def chat_json(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ) -> Dict[str, Any]:
+        last_msg = messages[-1]["content"] if messages else ""
+        return self._rule_based_intent(last_msg)
+
+    def _rule_based_intent(self, message: str) -> Dict[str, Any]:
+        """Pattern-based intent detection as fallback."""
+        msg = message.lower().strip()
+
+        # Order matters: check specific intents before broad ones
+        if any(w in msg for w in ["run all", "full analysis", "analyze everything", "complete analysis", "start analysis", "proceed", "run pipeline"]):
+            return {"intent": "run_pipeline", "explanation": "Running the full data science pipeline."}
+        if any(w in msg for w in ["help", "what can", "how do", "command"]):
+            return {"intent": "help", "explanation": "Showing help information."}
+        if any(w in msg for w in ["status", "progress", "where"]):
+            return {"intent": "status", "explanation": "Showing current status."}
+        if any(w in msg for w in ["clean", "preprocess", "missing", "duplicate", "outlier"]):
+            return {"intent": "run_agent", "agent": "DataCleanerAgent", "action": "clean_data", "explanation": "Running data cleaning based on your request."}
+        if any(w in msg for w in ["eda", "explor", "statistic", "profile", "distribut", "correlat", "describe", "analyze", "analyse"]):
+            return {"intent": "run_agent", "agent": "EDAAgent", "action": "full_eda", "explanation": "Running exploratory data analysis."}
+        if any(w in msg for w in ["feature", "engineer", "encod", "scal", "transform"]):
+            return {"intent": "run_agent", "agent": "FeatureEngineerAgent", "action": "engineer_features", "explanation": "Running feature engineering."}
+        if any(w in msg for w in ["automl", "auto ml", "best model", "recommend"]):
+            return {"intent": "run_agent", "agent": "AutoMLAgent", "action": "auto_select_models", "explanation": "Running AutoML model selection."}
+        if any(w in msg for w in ["train", "model", "predict", "classif", "regress", "fit"]):
+            return {"intent": "run_agent", "agent": "ModelTrainerAgent", "action": "train_models", "explanation": "Training machine learning models."}
+        if any(w in msg for w in ["visual", "chart", "plot", "graph", "draw"]):
+            return {"intent": "run_agent", "agent": "DataVisualizerAgent", "action": "generate_visualizations", "explanation": "Generating visualizations."}
+        if any(w in msg for w in ["dashboard", "report", "summary"]):
+            return {"intent": "run_agent", "agent": "DashboardBuilderAgent", "action": "build_dashboard", "explanation": "Building dashboard."}
+        if any(w in msg for w in ["upload", "load", "import", "open", "read", "data"]):
+            return {"intent": "upload_data", "explanation": "Please upload a dataset using the sidebar."}
+
+        return {"intent": "general", "explanation": "I can help with data cleaning, EDA, feature engineering, model training, and visualization. Try asking me to analyze your data or train models!"}
+
+    def _rule_based_response(self, message: str) -> str:
+        """Generate a simple text response."""
+        intent = self._rule_based_intent(message)
+        return intent.get("explanation", "I'm here to help with your data science tasks. Try uploading a dataset and asking me to analyze it!")
+
+
+def _extract_json(text: str) -> Dict[str, Any]:
+    """Extract JSON from LLM text response, handling markdown code blocks."""
+    text = text.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        # Remove first and last ``` lines
+        json_lines = []
+        in_block = False
+        for line in lines:
+            if line.strip().startswith("```") and not in_block:
+                in_block = True
+                continue
+            elif line.strip() == "```" and in_block:
+                break
+            elif in_block:
+                json_lines.append(line)
+        text = "\n".join(json_lines)
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Try to find JSON object in the text
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        if start != -1 and end > start:
+            try:
+                return json.loads(text[start:end])
+            except json.JSONDecodeError:
+                pass
+        return {"intent": "general", "explanation": text}
+
+
+def get_llm_client(
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+) -> LLMClient:
+    """Factory function to create the appropriate LLM client.
+
+    Auto-detects provider from environment variables if not specified.
+    Falls back to rule-based client if no API keys are found.
+    """
+    if provider is None:
+        if api_key or os.getenv("OPENAI_API_KEY"):
+            provider = "openai"
+        elif os.getenv("ANTHROPIC_API_KEY"):
+            provider = "anthropic"
+        elif os.getenv("OLLAMA_MODEL"):
+            provider = "ollama"
+        else:
+            logger.info("No LLM API key found. Using rule-based fallback client.")
+            return FallbackClient()
+
+    if provider == "openai":
+        return OpenAIClient(api_key=api_key, model=model or "gpt-4o-mini")
+    elif provider == "anthropic":
+        return AnthropicClient(api_key=api_key, model=model or "claude-sonnet-4-5-20250929")
+    elif provider == "ollama":
+        return OllamaClient(model=model or os.getenv("OLLAMA_MODEL", "llama3.1"))
+    else:
+        logger.warning(f"Unknown provider '{provider}', using fallback.")
+        return FallbackClient()
