@@ -8,7 +8,18 @@ from pathlib import Path
 from typing import Optional, Union
 import logging
 
+# Disable pandas 3.x StringDtype at the earliest import point
+pd.set_option("future.infer_string", False)
+
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert pandas 3.x StringDtype columns to plain object for numpy compat."""
+    for col in df.columns:
+        if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
+            df[col] = df[col].astype(object)
+    return df
 
 
 def load_dataframe(filepath: Union[str, Path]) -> pd.DataFrame:
@@ -21,19 +32,21 @@ def load_dataframe(filepath: Union[str, Path]) -> pd.DataFrame:
     suffix = filepath.suffix.lower()
     
     if suffix == '.csv':
-        return pd.read_csv(filepath)
+        df = pd.read_csv(filepath)
     elif suffix in ['.xlsx', '.xls']:
-        return pd.read_excel(filepath)
+        df = pd.read_excel(filepath)
     elif suffix == '.json':
-        return pd.read_json(filepath)
+        df = pd.read_json(filepath)
     elif suffix == '.parquet':
-        return pd.read_parquet(filepath)
+        df = pd.read_parquet(filepath)
     elif suffix == '.feather':
-        return pd.read_feather(filepath)
+        df = pd.read_feather(filepath)
     elif suffix in ['.pkl', '.pickle']:
-        return pd.read_pickle(filepath)
+        df = pd.read_pickle(filepath)
     else:
         raise ValueError(f"Unsupported file format: {suffix}")
+
+    return _sanitize_dtypes(df)
 
 
 def save_dataframe(df: pd.DataFrame, filepath: Union[str, Path], **kwargs) -> None:
@@ -71,10 +84,10 @@ def generate_sample_data(sample_type: str = "random", n_samples: int = 1000) -> 
             data = load_iris()
             df = pd.DataFrame(data.data, columns=data.feature_names)
             df['target'] = data.target
-            return df
+            return _sanitize_dtypes(df)
         except ImportError:
             pass
-    
+
     elif sample_type == "boston" or sample_type == "housing":
         df = pd.DataFrame({
             'rooms': np.random.uniform(3, 10, n_samples),
@@ -84,8 +97,8 @@ def generate_sample_data(sample_type: str = "random", n_samples: int = 1000) -> 
             'crime_rate': np.random.exponential(3, n_samples),
         })
         df['price'] = df['rooms'] * 30000 + df['age'] * (-200) + np.random.normal(0, 20000, n_samples)
-        return df
-    
+        return _sanitize_dtypes(df)
+
     elif sample_type == "titanic":
         n = min(n_samples, 891)
         df = pd.DataFrame({
@@ -98,21 +111,21 @@ def generate_sample_data(sample_type: str = "random", n_samples: int = 1000) -> 
             'Embarked': np.random.choice(['S', 'C', 'Q'], n, p=[0.72, 0.19, 0.09]),
             'Survived': np.random.choice([0, 1], n, p=[0.62, 0.38])
         })
-        return df
-    
+        return _sanitize_dtypes(df)
+
     elif sample_type == "classification":
         df = pd.DataFrame({f'feature_{i}': np.random.randn(n_samples) for i in range(10)})
         df['category'] = np.random.choice(['A', 'B', 'C'], n_samples)
         df['target'] = (df['feature_0'] + df['feature_1'] > 0).astype(int)
-        return df
-    
+        return _sanitize_dtypes(df)
+
     elif sample_type == "regression":
         df = pd.DataFrame({f'feature_{i}': np.random.randn(n_samples) for i in range(10)})
         df['target'] = 3 * df['feature_0'] + 2 * df['feature_1'] - df['feature_2'] + np.random.randn(n_samples) * 0.5
-        return df
-    
+        return _sanitize_dtypes(df)
+
     # Default: random data
     df = pd.DataFrame({f'feature_{i}': np.random.randn(n_samples) for i in range(10)})
     df['category'] = np.random.choice(['A', 'B', 'C', 'D'], n_samples)
     df['target'] = np.random.choice([0, 1], n_samples)
-    return df
+    return _sanitize_dtypes(df)
