@@ -168,7 +168,10 @@ class AutoMLAgent(BaseAgent):
         class_balance = None
         if is_classification:
             vc = target.value_counts()
-            class_balance = float(vc.max() / vc.min()) if vc.min() > 0 else float('inf')
+            if len(vc) > 0:
+                class_balance = float(vc.max() / vc.min()) if vc.min() > 0 else float('inf')
+            else:
+                class_balance = None
 
         return {
             "n_samples": n_samples,

@@ -513,3 +513,86 @@ class TestStringDtypeCompatibility:
         })
         assert result.success
         assert "dataframe" in result.data
+
+
+class TestEdgeCases:
+    """Edge case tests for robustness."""
+
+    @pytest.mark.asyncio
+    async def test_eda_with_string_target_many_unique(self):
+        """EDA should not crash when target is string with >10 unique values."""
+        np.random.seed(42)
+        n = 100
+        df = pd.DataFrame({
+            "x": np.random.randn(n),
+            "target": [f"class_{i}" for i in range(n)],  # 100 unique string values
+        })
+        agent = EDAAgent()
+        result = await agent.run({
+            "action": "full_eda",
+            "dataframe": df,
+            "target_column": "target",
+        })
+        assert result.success
+        assert result.data["target_analysis"]["task_type"] == "classification"
+
+    @pytest.mark.asyncio
+    async def test_eda_empty_dataframe(self):
+        """EDA should handle empty dataframe gracefully."""
+        df = pd.DataFrame({"a": pd.Series(dtype="float64"), "b": pd.Series(dtype="object")})
+        agent = EDAAgent()
+        result = await agent.run({"action": "full_eda", "dataframe": df})
+        assert result.success
+
+    @pytest.mark.asyncio
+    async def test_feature_engineer_datetime_extraction(self):
+        """FE should parse date columns without crashing (no infer_datetime_format)."""
+        np.random.seed(42)
+        n = 50
+        df = pd.DataFrame({
+            "date_col": pd.date_range("2023-01-01", periods=n).strftime("%Y-%m-%d").tolist(),
+            "value": np.random.randn(n),
+            "target": np.random.choice([0, 1], n),
+        })
+        agent = FeatureEngineerAgent()
+        result = await agent.run({
+            "action": "engineer_features",
+            "dataframe": df,
+            "target_column": "target",
+        })
+        assert result.success
+        # datetime features should have been created
+        created = result.data["feature_report"]["created_features"]
+        assert any("year" in f for f in created)
+
+    @pytest.mark.asyncio
+    async def test_dashboard_all_nan_target(self):
+        """Dashboard should not crash when target is all NaN."""
+        df = pd.DataFrame({
+            "x": [1.0, 2.0, 3.0],
+            "target": [np.nan, np.nan, np.nan],
+        })
+        agent = DashboardBuilderAgent()
+        result = await agent.run({
+            "action": "build_dashboard",
+            "dataframe": df,
+            "target_column": "target",
+        })
+        assert result.success
+
+    @pytest.mark.asyncio
+    async def test_automl_all_nan_target(self):
+        """AutoML should fail gracefully when target is all NaN."""
+        df = pd.DataFrame({
+            "x": [1.0, 2.0, 3.0],
+            "target": [np.nan, np.nan, np.nan],
+        })
+        agent = AutoMLAgent()
+        result = await agent.run({
+            "action": "auto_select_models",
+            "dataframe": df,
+            "target_column": "target",
+        })
+        # Should fail gracefully, not crash
+        assert not result.success
+        assert "valid target" in result.error.lower() or "10" in result.error

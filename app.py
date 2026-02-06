@@ -610,7 +610,7 @@ async def _run_full_pipeline(user_context: str) -> str:
 
             # Update working dataframe if agent produces one
             if "dataframe" in result_data and isinstance(result_data["dataframe"], pd.DataFrame):
-                current_df = result_data["dataframe"]
+                current_df = _sanitize_dtypes(result_data["dataframe"])
                 st.session_state.current_df = current_df
 
             coordinator.record_analysis(agent_name, action, {"success": True})
@@ -670,9 +670,10 @@ def _store_agent_result(agent_name: str, action: str, result_data: dict):
     key = key_map.get(agent_name, agent_name)
     st.session_state.analysis_results[key] = result_data
 
-    # Update working dataframe when relevant
+    # Update working dataframe when relevant, sanitize dtypes to prevent
+    # StringDtype leaking between agents
     if "dataframe" in result_data and isinstance(result_data["dataframe"], pd.DataFrame):
-        st.session_state.current_df = result_data["dataframe"]
+        st.session_state.current_df = _sanitize_dtypes(result_data["dataframe"])
 
 
 def _extract_message_extras(agent_name: str, result_data: dict) -> dict:

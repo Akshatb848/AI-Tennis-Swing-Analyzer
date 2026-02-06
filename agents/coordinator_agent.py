@@ -428,7 +428,7 @@ class CoordinatorAgent(BaseAgent):
         completed_analyses = context.get("completed_analyses", {})
         completed = list(completed_analyses.keys()) if completed_analyses else []
 
-        lines: list[str] = []
+        lines: List[str] = []
         msg_lower = user_message.lower().strip()
 
         # --- Acknowledge the user's message naturally ---

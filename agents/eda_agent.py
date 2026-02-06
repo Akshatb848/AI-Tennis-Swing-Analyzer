@@ -154,8 +154,9 @@ class EDAAgent(BaseAgent):
     def _analyze_target(self, df: pd.DataFrame, target: str) -> Dict[str, Any]:
         target_data = df[target]
         analysis = {"column": target, "dtype": str(target_data.dtype), "unique": int(target_data.nunique())}
-        
-        if target_data.nunique() <= 10:
+
+        is_numeric = pd.api.types.is_numeric_dtype(target_data)
+        if target_data.nunique() <= 10 or not is_numeric:
             analysis["task_type"] = "classification"
             analysis["class_distribution"] = target_data.value_counts().to_dict()
         else:
@@ -164,13 +165,14 @@ class EDAAgent(BaseAgent):
                 "mean": float(target_data.mean()), "std": float(target_data.std()),
                 "min": float(target_data.min()), "max": float(target_data.max())
             }
-        
+
         return analysis
     
     def _generate_insights(self, df: pd.DataFrame, target: Optional[str] = None) -> Dict[str, Any]:
         insights, recommendations = [], []
         
-        missing_pct = df.isnull().sum().sum() / (len(df) * len(df.columns)) * 100
+        total_cells = len(df) * len(df.columns)
+        missing_pct = df.isnull().sum().sum() / total_cells * 100 if total_cells > 0 else 0
         if missing_pct > 10:
             insights.append(f"⚠️ {missing_pct:.1f}% missing values detected")
             recommendations.append("Implement sophisticated imputation")

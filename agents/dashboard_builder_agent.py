@@ -162,16 +162,20 @@ class DashboardBuilderAgent(BaseAgent):
                 "unique": int(target_data.nunique()),
             }
 
-            if target_data.nunique() <= 10:
+            is_numeric_target = pd.api.types.is_numeric_dtype(target_data)
+            if target_data.nunique() <= 10 or not is_numeric_target:
                 target_info["task_type"] = "classification"
                 vc = target_data.value_counts()
                 target_info["class_distribution"] = {
                     "labels": [str(l) for l in vc.index.tolist()],
                     "values": vc.values.tolist(),
                 }
-                target_info["class_balance"] = (
-                    "Balanced" if vc.max() / max(vc.min(), 1) < 2 else "Imbalanced"
-                )
+                if len(vc) > 0:
+                    target_info["class_balance"] = (
+                        "Balanced" if vc.max() / max(vc.min(), 1) < 2 else "Imbalanced"
+                    )
+                else:
+                    target_info["class_balance"] = "Unknown (all values missing)"
             else:
                 target_info["task_type"] = "regression"
                 target_info["statistics"] = {

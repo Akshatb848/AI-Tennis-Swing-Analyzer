@@ -41,6 +41,9 @@ def _is_text_column(df: pd.DataFrame, col: str) -> bool:
     sample = df[col].dropna()
     if len(sample) == 0:
         return False
+    # Don't treat date-like columns as text
+    if _looks_like_date(df[col]):
+        return False
     # Average string length > 50 -> likely free text (descriptions, etc.)
     avg_len = sample.astype(str).str.len().mean()
     if avg_len > 50:
@@ -154,7 +157,7 @@ class FeatureEngineerAgent(BaseAgent):
                 continue
             if (df[col].dtype == 'object' or pd.api.types.is_string_dtype(df[col])) and _looks_like_date(df[col]):
                 try:
-                    parsed = pd.to_datetime(df[col], infer_datetime_format=True, errors='coerce')
+                    parsed = pd.to_datetime(df[col], errors='coerce')
                     if parsed.notna().sum() > len(parsed) * 0.5:
                         df[col] = parsed
                 except Exception:
