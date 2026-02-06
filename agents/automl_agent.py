@@ -61,6 +61,12 @@ class AutoMLAgent(BaseAgent):
         if target_column is None or target_column not in df.columns:
             return TaskResult(success=False, error="Invalid target column")
 
+        df = df.copy()
+        # Convert pandas 3.x StringDtype to object for numpy compatibility
+        str_dtype_cols = df.select_dtypes(include=['string']).columns
+        if len(str_dtype_cols) > 0:
+            df[str_dtype_cols] = df[str_dtype_cols].astype(object)
+
         # ---- Prepare target ----
         y = df[target_column].copy()
         label_encoder = None

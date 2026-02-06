@@ -56,6 +56,13 @@ class DashboardBuilderAgent(BaseAgent):
         target_column = task.get("target_column")
         title = task.get("title", "Data Science Dashboard")
 
+        # Convert pandas 3.x StringDtype to object for numpy compatibility
+        if df is not None:
+            df = df.copy()
+            str_dtype_cols = df.select_dtypes(include=['string']).columns
+            if len(str_dtype_cols) > 0:
+                df[str_dtype_cols] = df[str_dtype_cols].astype(object)
+
         sections: List[Dict[str, Any]] = []
 
         # ---- Section 1: KPI Cards ----

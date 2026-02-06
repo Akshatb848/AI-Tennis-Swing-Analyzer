@@ -427,3 +427,89 @@ class TestPipelineEndToEnd:
         assert result.data["target_encoded"] is True
         assert len(result.data["categorical_features_encoded"]) > 0
         assert len(result.data["results"]) >= 3
+
+
+class TestStringDtypeCompatibility:
+    """All agents must handle pandas 3.x StringDtype columns without numpy errors."""
+
+    @pytest.mark.asyncio
+    async def test_eda_with_stringdtype(self, sample_stringdtype_df):
+        agent = EDAAgent()
+        result = await agent.run({
+            "action": "full_eda",
+            "dataframe": sample_stringdtype_df,
+            "target_column": "target",
+        })
+        assert result.success
+        assert "dataset_info" in result.data
+        assert "correlations" in result.data
+
+    @pytest.mark.asyncio
+    async def test_feature_engineer_with_stringdtype(self, sample_stringdtype_df):
+        agent = FeatureEngineerAgent()
+        result = await agent.run({
+            "action": "engineer_features",
+            "dataframe": sample_stringdtype_df,
+            "target_column": "target",
+        })
+        assert result.success
+        assert "dataframe" in result.data
+        # String columns should have been encoded
+        assert len(result.data["feature_report"]["encoded_features"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_model_trainer_with_stringdtype(self, sample_stringdtype_df):
+        agent = ModelTrainerAgent()
+        result = await agent.run({
+            "action": "train_models",
+            "dataframe": sample_stringdtype_df,
+            "target_column": "target",
+            "cv_folds": 3,
+        })
+        assert result.success
+        assert len(result.data["categorical_features_encoded"]) > 0
+        assert len(result.data["results"]) >= 1
+
+    @pytest.mark.asyncio
+    async def test_automl_with_stringdtype(self, sample_stringdtype_df):
+        agent = AutoMLAgent()
+        result = await agent.run({
+            "action": "auto_select_models",
+            "dataframe": sample_stringdtype_df,
+            "target_column": "target",
+        })
+        assert result.success
+        assert len(result.data["results"]) >= 1
+
+    @pytest.mark.asyncio
+    async def test_visualizer_with_stringdtype(self, sample_stringdtype_df):
+        agent = DataVisualizerAgent()
+        result = await agent.run({
+            "action": "generate_visualizations",
+            "dataframe": sample_stringdtype_df,
+        })
+        assert result.success
+        assert len(result.data["charts"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_dashboard_with_stringdtype(self, sample_stringdtype_df):
+        agent = DashboardBuilderAgent()
+        result = await agent.run({
+            "action": "build_dashboard",
+            "dataframe": sample_stringdtype_df,
+            "target_column": "target",
+        })
+        assert result.success
+        section_types = [s["type"] for s in result.data["components"]]
+        assert "kpi_section" in section_types
+        assert "chart_section" in section_types
+
+    @pytest.mark.asyncio
+    async def test_cleaner_with_stringdtype(self, sample_stringdtype_df):
+        agent = DataCleanerAgent()
+        result = await agent.run({
+            "action": "clean_data",
+            "dataframe": sample_stringdtype_df,
+        })
+        assert result.success
+        assert "dataframe" in result.data

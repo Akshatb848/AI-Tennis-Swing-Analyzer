@@ -50,7 +50,13 @@ class EDAAgent(BaseAgent):
                 df = pd.read_csv(df_path) if df_path.endswith('.csv') else pd.read_excel(df_path)
             else:
                 return TaskResult(success=False, error="No dataframe provided")
-        
+
+        df = df.copy()
+        # Convert pandas 3.x StringDtype to object for numpy compatibility
+        str_dtype_cols = df.select_dtypes(include=['string']).columns
+        if len(str_dtype_cols) > 0:
+            df[str_dtype_cols] = df[str_dtype_cols].astype(object)
+
         target_column = task.get("target_column")
         
         self.eda_report = {
@@ -182,10 +188,18 @@ class EDAAgent(BaseAgent):
         df = task.get("dataframe")
         if df is None:
             return TaskResult(success=False, error="No dataframe provided")
+        df = df.copy()
+        str_dtype_cols = df.select_dtypes(include=['string']).columns
+        if len(str_dtype_cols) > 0:
+            df[str_dtype_cols] = df[str_dtype_cols].astype(object)
         return TaskResult(success=True, data=self._compute_statistical_profile(df))
-    
+
     async def _correlation_analysis(self, task: Dict[str, Any]) -> TaskResult:
         df = task.get("dataframe")
         if df is None:
             return TaskResult(success=False, error="No dataframe provided")
+        df = df.copy()
+        str_dtype_cols = df.select_dtypes(include=['string']).columns
+        if len(str_dtype_cols) > 0:
+            df[str_dtype_cols] = df[str_dtype_cols].astype(object)
         return TaskResult(success=True, data=self._compute_correlations(df))
