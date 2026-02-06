@@ -309,14 +309,25 @@ class CoordinatorAgent(BaseAgent):
                 lines.append(f"- **Before**: {orig[0] if isinstance(orig, (list, tuple)) else orig} rows")
                 lines.append(f"- **After**: {final[0] if isinstance(final, (list, tuple)) else final} rows")
             for step in report.get("steps", []):
-                lines.append(f"- {step.get('step', '')}: {step.get('removed', 0)} items removed")
+                step_name = step.get("step", "")
+                if step_name == "remove_duplicates":
+                    lines.append(f"- Duplicates removed: {step.get('removed', 0)}")
+                elif step_name == "handle_missing":
+                    lines.append(f"- Missing values filled: {step.get('values_filled', 0)}")
+                elif step_name == "handle_outliers":
+                    lines.append(f"- Outliers clipped: {step.get('clipped', 0)}")
+                else:
+                    lines.append(f"- {step_name}: {step.get('removed', 0)} items")
 
         elif agent_name == "FeatureEngineerAgent":
             report = result_data.get("feature_report", result_data)
             created = report.get("created_features", [])
             encoded = report.get("encoded_features", [])
+            dropped = report.get("dropped_columns", [])
             lines.append(f"- **Created** {len(created)} new features")
             lines.append(f"- **Encoded** {len(encoded)} categorical features")
+            if dropped:
+                lines.append(f"- **Dropped** {len(dropped)} non-feature columns (IDs, text)")
             orig = len(report.get("original_features", []))
             final = len(report.get("final_features", []))
             lines.append(f"- Feature count: {orig} -> {final}")

@@ -48,7 +48,7 @@ class DataVisualizerAgent(BaseAgent):
         self.charts = []
         
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category', 'str']).columns.tolist()
         
         # Distribution plots
         if "distribution" in chart_types:

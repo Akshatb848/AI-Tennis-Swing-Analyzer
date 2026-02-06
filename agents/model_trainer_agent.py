@@ -1,5 +1,11 @@
 """
-Model Trainer Agent - Model training and evaluation
+Model Trainer Agent - Robust model training and evaluation
+
+Handles arbitrary datasets by:
+- Encoding categorical target columns automatically
+- Dropping ID-like and text columns
+- Handling NaN in target/features
+- Graceful fallback when no models can be trained
 """
 
 import logging
@@ -14,9 +20,25 @@ from .base_agent import BaseAgent, TaskResult, generate_uuid
 logger = logging.getLogger(__name__)
 
 
+def _is_id_column(df: pd.DataFrame, col: str) -> bool:
+    """Heuristic: detect ID-like columns that shouldn't be used as features."""
+    col_lower = col.lower().strip()
+    if col_lower in ("id", "index", "row_id", "row_number", "unnamed: 0"):
+        return True
+    if col_lower.endswith(("_id", " id")):
+        return True
+    if col_lower.startswith(("id_", "id ")):
+        return True
+    # Unique integer column with almost as many unique values as rows
+    if pd.api.types.is_integer_dtype(df[col]) and len(df) > 20:
+        if df[col].nunique() >= len(df) * 0.9:
+            return True
+    return False
+
+
 class ModelTrainerAgent(BaseAgent):
     """Agent for model training and evaluation."""
-    
+
     def __init__(self):
         super().__init__(
             name="ModelTrainerAgent",
@@ -26,13 +48,13 @@ class ModelTrainerAgent(BaseAgent):
         self.trained_models: Dict[str, Any] = {}
         self.training_history: List[Dict[str, Any]] = []
         self.best_model: Optional[Dict[str, Any]] = None
-    
+
     def get_system_prompt(self) -> str:
         return "You are an expert Model Training Agent."
 
     async def execute(self, task: Dict[str, Any]) -> TaskResult:
         action = task.get("action", "train_models")
-        
+
         try:
             if action == "train_models":
                 return await self._train_models(task)
@@ -44,28 +66,73 @@ class ModelTrainerAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Training error: {e}")
             return TaskResult(success=False, error=str(e))
-    
+
     async def _train_models(self, task: Dict[str, Any]) -> TaskResult:
         df = task.get("dataframe")
         if df is None:
             return TaskResult(success=False, error="No dataframe provided")
-        
+
         target_column = task.get("target_column")
         if target_column is None or target_column not in df.columns:
             return TaskResult(success=False, error="Invalid target column")
-        
+
         cv_folds = task.get("cv_folds", 5)
-        
-        X = df.drop(columns=[target_column]).select_dtypes(include=[np.number]).fillna(0)
-        y = df[target_column]
-        
+
+        # ---- Prepare target ----
+        y = df[target_column].copy()
+        label_encoder = None
+
+        if y.dtype == "object" or y.dtype.name == "category" or pd.api.types.is_string_dtype(y):
+            from sklearn.preprocessing import LabelEncoder
+            label_encoder = LabelEncoder()
+            y = y.fillna("_missing_")
+            y = pd.Series(label_encoder.fit_transform(y.astype(str)), index=y.index)
+
+        # Drop rows where target is NaN (for numeric targets)
+        valid_mask = y.notna()
+        if valid_mask.sum() < 10:
+            return TaskResult(
+                success=False,
+                error=f"Only {int(valid_mask.sum())} rows have valid target values. Need at least 10.",
+            )
+
+        # ---- Prepare features ----
+        feature_df = df.drop(columns=[target_column])
+
+        # Drop ID-like columns
+        id_cols = [c for c in feature_df.columns if _is_id_column(feature_df, c)]
+        if id_cols:
+            feature_df = feature_df.drop(columns=id_cols)
+
+        X = feature_df.select_dtypes(include=[np.number]).fillna(0)
+
+        if X.shape[1] == 0:
+            return TaskResult(
+                success=False,
+                error=(
+                    "No numeric features available for training. "
+                    "Run feature engineering first to encode categorical columns."
+                ),
+            )
+
+        # Align X and y on valid rows
+        X = X.loc[valid_mask]
+        y = y.loc[valid_mask]
+
+        # Replace inf values
+        X = X.replace([np.inf, -np.inf], 0)
+
+        # Adjust CV folds for small datasets
+        cv_folds = min(cv_folds, max(2, len(y) // 10))
+
         task_type = "classification" if y.nunique() <= 10 else "regression"
-        
+
         from sklearn.model_selection import train_test_split, cross_val_score
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        
+
         results = {}
-        
+        training_errors = []
+
         if task_type == "classification":
             from sklearn.linear_model import LogisticRegression
             from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -73,7 +140,7 @@ class ModelTrainerAgent(BaseAgent):
             from sklearn.neighbors import KNeighborsClassifier
             from sklearn.naive_bayes import GaussianNB
             from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-            
+
             models = {
                 "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
                 "RandomForest": RandomForestClassifier(n_estimators=100, random_state=42),
@@ -82,14 +149,14 @@ class ModelTrainerAgent(BaseAgent):
                 "KNN": KNeighborsClassifier(),
                 "NaiveBayes": GaussianNB()
             }
-            
+
             for name, model in models.items():
                 try:
                     start = time.time()
                     model.fit(X_train, y_train)
                     y_pred = model.predict(X_test)
                     cv = cross_val_score(model, X_train, y_train, cv=cv_folds, scoring='accuracy')
-                    
+
                     results[name] = {
                         "metrics": {
                             "accuracy": float(accuracy_score(y_test, y_pred)),
@@ -99,18 +166,19 @@ class ModelTrainerAgent(BaseAgent):
                             "cv_mean": float(cv.mean()), "cv_std": float(cv.std())
                         },
                         "training_time": time.time() - start,
-                        "feature_importance": dict(zip(X.columns, model.feature_importances_.tolist())) if hasattr(model, 'feature_importances_') else {}
+                        "feature_importance": dict(zip(X.columns.tolist(), model.feature_importances_.tolist())) if hasattr(model, 'feature_importances_') else {}
                     }
                     self.trained_models[name] = model
                 except Exception as e:
+                    training_errors.append(f"{name}: {e}")
                     logger.error(f"Error training {name}: {e}")
-        
+
         else:  # regression
             from sklearn.linear_model import LinearRegression, Ridge, Lasso
             from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
             from sklearn.tree import DecisionTreeRegressor
             from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-            
+
             models = {
                 "LinearRegression": LinearRegression(),
                 "Ridge": Ridge(random_state=42),
@@ -119,14 +187,14 @@ class ModelTrainerAgent(BaseAgent):
                 "GradientBoosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
                 "DecisionTree": DecisionTreeRegressor(random_state=42)
             }
-            
+
             for name, model in models.items():
                 try:
                     start = time.time()
                     model.fit(X_train, y_train)
                     y_pred = model.predict(X_test)
                     cv = cross_val_score(model, X_train, y_train, cv=cv_folds, scoring='r2')
-                    
+
                     results[name] = {
                         "metrics": {
                             "mse": float(mean_squared_error(y_test, y_pred)),
@@ -136,37 +204,49 @@ class ModelTrainerAgent(BaseAgent):
                             "cv_mean": float(cv.mean()), "cv_std": float(cv.std())
                         },
                         "training_time": time.time() - start,
-                        "feature_importance": dict(zip(X.columns, model.feature_importances_.tolist())) if hasattr(model, 'feature_importances_') else {}
+                        "feature_importance": dict(zip(X.columns.tolist(), model.feature_importances_.tolist())) if hasattr(model, 'feature_importances_') else {}
                     }
                     self.trained_models[name] = model
                 except Exception as e:
+                    training_errors.append(f"{name}: {e}")
                     logger.error(f"Error training {name}: {e}")
-        
+
+        if not results:
+            error_detail = "; ".join(training_errors[:3]) if training_errors else "Unknown issue"
+            return TaskResult(
+                success=False,
+                error=f"No models were successfully trained. Errors: {error_detail}",
+            )
+
         metric_key = "accuracy" if task_type == "classification" else "r2"
         best_name = max(results, key=lambda k: results[k]["metrics"].get(metric_key, 0))
-        
+
         self.best_model = {
             "name": best_name,
             "metrics": results[best_name]["metrics"],
             "task_type": task_type
         }
-        
+
         self.training_history.append({
             "timestamp": datetime.now().isoformat(),
             "task_type": task_type,
             "best_model": best_name
         })
-        
+
         return TaskResult(
             success=True,
             data={
                 "results": results,
                 "best_model": best_name,
                 "best_metrics": results[best_name]["metrics"],
-                "task_type": task_type
+                "task_type": task_type,
+                "n_features": X.shape[1],
+                "n_samples": len(y),
+                "target_encoded": label_encoder is not None,
+                "id_columns_dropped": id_cols,
             },
             metrics={"models_trained": len(results), "best_model": best_name}
         )
-    
+
     async def _train_single_model(self, task: Dict[str, Any]) -> TaskResult:
         return TaskResult(success=False, error="Not implemented")

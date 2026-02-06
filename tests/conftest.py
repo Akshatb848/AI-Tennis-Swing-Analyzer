@@ -31,3 +31,40 @@ def sample_regression_df():
     })
     df["target"] = 3 * df["x1"] + 2 * df["x2"] - df["x3"] + np.random.randn(n) * 0.5
     return df
+
+
+@pytest.fixture
+def sample_customer_support_df():
+    """Realistic customer support dataset with ID, text, and categorical columns."""
+    np.random.seed(42)
+    n = 200
+    df = pd.DataFrame({
+        "Ticket ID": range(1000, 1000 + n),
+        "Customer Name": [f"Customer_{i}" for i in range(n)],
+        "Customer Email": [f"user{i}@example.com" for i in range(n)],
+        "Customer Age": np.random.randint(18, 75, n),
+        "Customer Gender": np.random.choice(["Male", "Female", "Other"], n),
+        "Product Purchased": np.random.choice(["Laptop", "Phone", "Tablet", "Watch", "Camera"], n),
+        "Ticket Type": np.random.choice(["Bug", "Feature Request", "Question"], n),
+        "Ticket Subject": [f"Issue about feature {i % 50}" for i in range(n)],
+        "Ticket Description": [f"Long description text about the problem that the customer is experiencing, detail #{i}" for i in range(n)],
+        "Ticket Status": np.random.choice(["Open", "Closed", "Pending"], n),
+        "Ticket Priority": np.random.choice(["Low", "Medium", "High", "Critical"], n),
+        "Customer Satisfaction Rating": np.random.choice([1, 2, 3, 4, 5, np.nan], n),
+    })
+    return df
+
+
+@pytest.fixture
+def sample_categorical_target_df():
+    """Dataset with a purely categorical (string) target."""
+    np.random.seed(42)
+    n = 150
+    df = pd.DataFrame({
+        "age": np.random.randint(18, 65, n),
+        "income": np.random.uniform(20000, 150000, n),
+        "score": np.random.randn(n),
+        "category": np.random.choice(["A", "B", "C"], n),
+        "status": np.random.choice(["Active", "Inactive", "Pending"], n),
+    })
+    return df

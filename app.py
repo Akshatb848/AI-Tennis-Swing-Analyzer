@@ -272,6 +272,8 @@ def render_chat():
                 st.dataframe(msg["dataframe"], use_container_width=True)
             if "metrics_table" in msg:
                 st.dataframe(pd.DataFrame(msg["metrics_table"]), use_container_width=True)
+            if "dashboard" in msg:
+                _render_professional_dashboard(msg["dashboard"])
 
 
 def _render_charts(charts):
@@ -317,6 +319,144 @@ def _render_charts(charts):
                 title=chart.get("title", ""),
             )
             st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_professional_dashboard(sections):
+    """Render a professional PowerBI/Tableau-style dashboard from section data."""
+    import plotly.express as px
+    import plotly.graph_objects as go
+
+    for section in sections:
+        sec_type = section.get("type", "")
+        sec_title = section.get("title", "")
+        data = section.get("data", {})
+
+        if sec_type == "kpi_section":
+            st.markdown(f"#### {sec_title}")
+            cols = st.columns(len(data))
+            for col, kpi in zip(cols, data):
+                with col:
+                    st.metric(label=kpi["title"], value=kpi["value"])
+
+        elif sec_type == "data_quality_section":
+            with st.expander(f"📋 {sec_title}", expanded=False):
+                q_score = data.get("quality_score", 100)
+                st.progress(min(q_score / 100, 1.0), text=f"Quality Score: {q_score}%")
+                c1, c2, c3 = st.columns(3)
+                dtypes = data.get("dtypes_summary", {})
+                c1.metric("Numeric", dtypes.get("numeric", 0))
+                c2.metric("Categorical", dtypes.get("categorical", 0))
+                c3.metric("Total Missing", data.get("total_missing", 0))
+                missing_by_col = data.get("missing_by_column", {})
+                if missing_by_col:
+                    st.markdown("**Missing by column (top 10):**")
+                    fig = go.Figure(go.Bar(
+                        x=list(missing_by_col.values()),
+                        y=list(missing_by_col.keys()),
+                        orientation='h',
+                        marker_color='#e74c3c',
+                    ))
+                    fig.update_layout(height=max(200, len(missing_by_col) * 30), margin=dict(l=0, r=0, t=0, b=0), template="plotly_white")
+                    st.plotly_chart(fig, use_container_width=True)
+
+        elif sec_type == "chart_section":
+            st.markdown(f"#### {sec_title}")
+            charts = data if isinstance(data, list) else []
+            _render_charts(charts)
+
+        elif sec_type == "target_analysis_section":
+            st.markdown(f"#### {sec_title}")
+            task_type = data.get("task_type", "")
+            col_name = data.get("column", "")
+            st.markdown(f"**Target**: `{col_name}` — **Task**: {task_type.title()} — **Unique values**: {data.get('unique', '?')}")
+
+            if task_type == "classification":
+                dist = data.get("class_distribution", {})
+                if dist:
+                    fig = px.pie(
+                        names=dist.get("labels", []),
+                        values=dist.get("values", []),
+                        title=f"Class Distribution: {col_name}",
+                        color_discrete_sequence=px.colors.qualitative.Set2,
+                    )
+                    fig.update_layout(template="plotly_white")
+                    st.plotly_chart(fig, use_container_width=True)
+                balance = data.get("class_balance", "")
+                if balance:
+                    st.info(f"Class balance: **{balance}**")
+            elif task_type == "regression":
+                vals = data.get("distribution_values")
+                if vals:
+                    fig = px.histogram(x=vals, title=f"Target Distribution: {col_name}", marginal="box")
+                    fig.update_layout(template="plotly_white")
+                    st.plotly_chart(fig, use_container_width=True)
+                stats = data.get("statistics", {})
+                if stats:
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Mean", f"{stats.get('mean', 0):.2f}" if stats.get("mean") is not None else "N/A")
+                    c2.metric("Std", f"{stats.get('std', 0):.2f}" if stats.get("std") is not None else "N/A")
+                    c3.metric("Min", f"{stats.get('min', 0):.2f}" if stats.get("min") is not None else "N/A")
+                    c4.metric("Max", f"{stats.get('max', 0):.2f}" if stats.get("max") is not None else "N/A")
+
+        elif sec_type == "model_comparison_section":
+            st.markdown(f"#### {sec_title}")
+            results = data.get("results", {})
+            best = data.get("best_model", "")
+            primary_metric = data.get("primary_metric", "accuracy")
+
+            if results:
+                # Model comparison bar chart
+                model_names = list(results.keys())
+                metric_values = [m.get(primary_metric, 0) for m in results.values()]
+                colors = ['#2ecc71' if n == best else '#3498db' for n in model_names]
+
+                fig = go.Figure(data=[go.Bar(
+                    x=model_names,
+                    y=metric_values,
+                    marker_color=colors,
+                    text=[f'{v:.4f}' for v in metric_values],
+                    textposition='outside',
+                )])
+                fig.update_layout(
+                    title=f"Model Comparison ({primary_metric.upper()})",
+                    xaxis_title="Model", yaxis_title=primary_metric.title(),
+                    template="plotly_white", height=400,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+                # Metrics table
+                rows = []
+                for name, metrics in results.items():
+                    row = {"Model": ("✅ " + name) if name == best else name}
+                    row.update({k: round(v, 4) if isinstance(v, float) else v for k, v in metrics.items()})
+                    rows.append(row)
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+            # Feature importance for best model
+            fi = data.get("feature_importance", {}).get(best, {})
+            if fi:
+                sorted_fi = dict(sorted(fi.items(), key=lambda x: abs(x[1]), reverse=True)[:15])
+                with st.expander("Feature Importance (Top 15)", expanded=False):
+                    fig = go.Figure(go.Bar(
+                        x=list(sorted_fi.values()),
+                        y=list(sorted_fi.keys()),
+                        orientation='h',
+                        marker_color='#9b59b6',
+                    ))
+                    fig.update_layout(height=max(300, len(sorted_fi) * 25), margin=dict(l=0, r=0, t=0, b=0), template="plotly_white", yaxis=dict(autorange="reversed"))
+                    st.plotly_chart(fig, use_container_width=True)
+
+        elif sec_type == "insights_section":
+            st.markdown(f"#### {sec_title}")
+            insights = data.get("insights", [])
+            recommendations = data.get("recommendations", [])
+            if insights:
+                for insight in insights:
+                    st.markdown(f"- {insight}")
+            if recommendations:
+                st.markdown("**Recommendations:**")
+                for rec in recommendations:
+                    st.markdown(f"- {rec}")
 
 
 # ---------- agent dispatch ----------
@@ -393,6 +533,7 @@ async def _run_single_agent(intent_result: dict, user_context: str):
     if action == "build_dashboard":
         task["eda_report"] = st.session_state.analysis_results.get("eda", {})
         task["model_results"] = st.session_state.analysis_results.get("modeling", {})
+        task["cleaning_report"] = st.session_state.analysis_results.get("cleaning", {})
 
     # Execute
     result = await agent.run(task)
@@ -522,12 +663,7 @@ def _extract_message_extras(agent_name: str, result_data: dict) -> dict:
             extras["metrics_table"] = rows
 
     elif agent_name == "DashboardBuilderAgent":
-        charts = []
-        for comp in result_data.get("components", []):
-            if comp.get("type") == "chart_section":
-                charts.extend(comp.get("data", []))
-        if charts:
-            extras["charts"] = charts[:6]
+        extras["dashboard"] = result_data.get("components", [])
 
     return extras
 
@@ -600,6 +736,8 @@ def main():
                 _render_charts(extras["charts"])
             if "metrics_table" in extras:
                 st.dataframe(pd.DataFrame(extras["metrics_table"]), use_container_width=True)
+            if "dashboard" in extras:
+                _render_professional_dashboard(extras["dashboard"])
 
         # Store in message history
         msg = {"role": "assistant", "content": response_text}
