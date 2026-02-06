@@ -16,7 +16,7 @@ import pandas as pd
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from .base_agent import BaseAgent, TaskResult
+from .base_agent import BaseAgent, TaskResult, get_numeric_cols, get_categorical_cols, get_datetime_cols, _sanitize_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +56,8 @@ class DashboardBuilderAgent(BaseAgent):
         target_column = task.get("target_column")
         title = task.get("title", "Data Science Dashboard")
 
-        # Convert pandas 3.x StringDtype to object for numpy compatibility
         if df is not None:
-            df = df.copy()
-            for col in df.columns:
-                if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                    df[col] = df[col].astype(object)
+            df = _sanitize_dataframe(df.copy())
 
         sections: List[Dict[str, Any]] = []
 
@@ -69,8 +65,8 @@ class DashboardBuilderAgent(BaseAgent):
         if df is not None:
             n_rows = len(df)
             n_cols = len(df.columns)
-            n_numeric = len(df.select_dtypes(include=[np.number]).columns)
-            n_categorical = len(df.select_dtypes(include=['object', 'category', 'string']).columns)
+            n_numeric = len(get_numeric_cols(df))
+            n_categorical = len(get_categorical_cols(df))
             missing_pct = df.isnull().sum().sum() / (n_rows * n_cols) * 100 if (n_rows * n_cols) > 0 else 0
             dup_count = int(df.duplicated().sum())
 
@@ -97,7 +93,7 @@ class DashboardBuilderAgent(BaseAgent):
                 "dtypes_summary": {
                     "numeric": n_numeric,
                     "categorical": n_categorical,
-                    "datetime": len(df.select_dtypes(include=['datetime64']).columns),
+                    "datetime": len(get_datetime_cols(df)),
                 },
             }
             sections.append({"type": "data_quality_section", "title": "Data Quality", "data": quality_data})
@@ -105,8 +101,8 @@ class DashboardBuilderAgent(BaseAgent):
         # ---- Section 3: Distribution Charts ----
         if df is not None:
             charts = []
-            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-            categorical_cols = df.select_dtypes(include=['object', 'category', 'string']).columns.tolist()
+            numeric_cols = get_numeric_cols(df)
+            categorical_cols = get_categorical_cols(df)
 
             # Numeric distributions (top 6)
             for col in numeric_cols[:6]:
@@ -230,7 +226,7 @@ class DashboardBuilderAgent(BaseAgent):
                 insights.append(f"High duplicate rate: {dup_pct:.1f}%")
                 recommendations.append("Review and remove duplicate rows")
 
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
+            numeric_cols = get_numeric_cols(df)
             for col in numeric_cols[:5]:
                 skew = df[col].skew()
                 if pd.notna(skew) and abs(skew) > 2:

@@ -16,7 +16,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import time
 
-from .base_agent import BaseAgent, TaskResult, generate_uuid
+from .base_agent import BaseAgent, TaskResult, generate_uuid, get_numeric_cols, get_categorical_cols, _sanitize_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +64,7 @@ def _prepare_features(df: pd.DataFrame, target_column: str) -> tuple:
     """
     feature_df = df.drop(columns=[target_column])
 
-    # Convert pandas 3.x StringDtype to object for numpy compatibility
-    for col in feature_df.columns:
-        if pd.api.types.is_string_dtype(feature_df[col]) and feature_df[col].dtype != "object":
-            feature_df[col] = feature_df[col].astype(object)
+    _sanitize_dataframe(feature_df)
 
     # Drop ID-like columns
     id_cols = [c for c in feature_df.columns if _is_id_column(feature_df, c)]
@@ -81,7 +78,7 @@ def _prepare_features(df: pd.DataFrame, target_column: str) -> tuple:
 
     # Encode remaining categorical columns
     encoded_cols = []
-    cat_cols = [c for c in feature_df.select_dtypes(include=['object', 'category', 'string']).columns]
+    cat_cols = get_categorical_cols(feature_df)
     for col in cat_cols:
         n_unique = feature_df[col].nunique()
         if n_unique <= 2:
@@ -99,7 +96,7 @@ def _prepare_features(df: pd.DataFrame, target_column: str) -> tuple:
             feature_df = feature_df.drop(columns=[col])
         encoded_cols.append(col)
 
-    X = feature_df.select_dtypes(include=[np.number]).fillna(0)
+    X = feature_df[get_numeric_cols(feature_df)].fillna(0)
     X = X.replace([np.inf, -np.inf], 0)
 
     return X, id_cols, text_cols, encoded_cols
@@ -146,10 +143,7 @@ class ModelTrainerAgent(BaseAgent):
             return TaskResult(success=False, error="Invalid target column")
 
         df = df.copy()
-        # Convert pandas 3.x StringDtype to object for numpy compatibility
-        for col in df.columns:
-            if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                df[col] = df[col].astype(object)
+        _sanitize_dataframe(df)
 
         cv_folds = task.get("cv_folds", 5)
 

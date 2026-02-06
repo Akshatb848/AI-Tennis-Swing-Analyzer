@@ -15,7 +15,7 @@ import pandas as pd
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 
-from .base_agent import BaseAgent, TaskResult
+from .base_agent import BaseAgent, TaskResult, get_numeric_cols, get_categorical_cols, _sanitize_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +62,7 @@ class AutoMLAgent(BaseAgent):
             return TaskResult(success=False, error="Invalid target column")
 
         df = df.copy()
-        # Convert pandas 3.x StringDtype to object for numpy compatibility
-        for col in df.columns:
-            if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                df[col] = df[col].astype(object)
+        _sanitize_dataframe(df)
 
         # ---- Prepare target ----
         y = df[target_column].copy()
@@ -176,8 +173,8 @@ class AutoMLAgent(BaseAgent):
         return {
             "n_samples": n_samples,
             "n_features": n_features,
-            "n_numeric": len(features.select_dtypes(include=[np.number]).columns),
-            "n_categorical": len(features.select_dtypes(include=['object', 'category', 'string']).columns),
+            "n_numeric": len(get_numeric_cols(features)),
+            "n_categorical": len(get_categorical_cols(features)),
             "is_classification": is_classification,
             "suggested_task_type": "classification" if is_classification else "regression",
             "class_balance_ratio": class_balance,

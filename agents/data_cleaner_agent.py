@@ -14,7 +14,7 @@ import pandas as pd
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 
-from .base_agent import BaseAgent, TaskResult
+from .base_agent import BaseAgent, TaskResult, get_numeric_cols
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class DataCleanerAgent(BaseAgent):
         outliers_clipped = 0
         outlier_details = []
         if task.get("handle_outliers", True):
-            numeric_cols = [c for c in df.select_dtypes(include=[np.number]).columns if c not in id_cols]
+            numeric_cols = [c for c in get_numeric_cols(df) if c not in id_cols]
             for col in numeric_cols:
                 Q1, Q3 = df[col].quantile([0.25, 0.75])
                 IQR = Q3 - Q1
@@ -182,7 +182,7 @@ class DataCleanerAgent(BaseAgent):
             return TaskResult(success=False, error="No dataframe provided")
 
         id_cols = {c for c in df.columns if _is_id_column(df, c)}
-        numeric_cols = [c for c in df.select_dtypes(include=[np.number]).columns if c not in id_cols]
+        numeric_cols = [c for c in get_numeric_cols(df) if c not in id_cols]
         for col in numeric_cols:
             Q1, Q3 = df[col].quantile([0.25, 0.75])
             IQR = Q3 - Q1

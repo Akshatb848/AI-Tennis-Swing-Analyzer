@@ -38,6 +38,46 @@ def _sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# ---------------------------------------------------------------------------
+# Safe column classification utilities
+#
+# These replace ALL calls to df.select_dtypes() across the codebase.
+# select_dtypes() internally calls invalidate_string_dtypes() in pandas 3.0
+# which rejects numpy string dtype specifiers.  pd.api.types.is_*_dtype()
+# is immune to this problem.
+# ---------------------------------------------------------------------------
+
+def get_numeric_cols(df: pd.DataFrame) -> List[str]:
+    """Return names of numeric columns (int, float, bool)."""
+    return [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+
+
+def get_categorical_cols(df: pd.DataFrame) -> List[str]:
+    """Return names of categorical / string / object columns."""
+    result = []
+    for c in df.columns:
+        if pd.api.types.is_numeric_dtype(df[c]):
+            continue
+        if pd.api.types.is_object_dtype(df[c]):
+            result.append(c)
+        elif hasattr(df[c], "cat"):          # CategoricalDtype
+            result.append(c)
+        elif pd.api.types.is_string_dtype(df[c]):
+            result.append(c)
+    return result
+
+
+def get_datetime_cols(df: pd.DataFrame) -> List[str]:
+    """Return names of datetime columns."""
+    return [c for c in df.columns if pd.api.types.is_datetime64_any_dtype(df[c])]
+
+
+def get_numeric_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a DataFrame containing only numeric columns."""
+    cols = get_numeric_cols(df)
+    return df[cols]
+
+
 class AgentState(Enum):
     """Agent execution states"""
     IDLE = "idle"

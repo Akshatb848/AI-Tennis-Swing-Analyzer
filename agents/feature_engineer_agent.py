@@ -14,7 +14,10 @@ import pandas as pd
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 
-from .base_agent import BaseAgent, TaskResult
+from .base_agent import (
+    BaseAgent, TaskResult, _sanitize_dataframe,
+    get_numeric_cols, get_categorical_cols, get_datetime_cols,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +112,7 @@ class FeatureEngineerAgent(BaseAgent):
             else:
                 return TaskResult(success=False, error="No dataframe provided")
 
-        df = df.copy()
-        # Convert pandas 3.x StringDtype to object for numpy compatibility
-        for col in df.columns:
-            if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                df[col] = df[col].astype(object)
-
+        df = _sanitize_dataframe(df.copy())
         target = task.get("target_column")
         original_cols = list(df.columns)
 
@@ -163,7 +161,7 @@ class FeatureEngineerAgent(BaseAgent):
                 except Exception:
                     pass
 
-        for col in df.select_dtypes(include=['datetime64']).columns:
+        for col in get_datetime_cols(df):
             if col == target:
                 continue
             df[f'{col}_year'] = df[col].dt.year
@@ -177,21 +175,21 @@ class FeatureEngineerAgent(BaseAgent):
 
         # ---- Create interaction features ----
         if task.get("create_interactions", True):
-            numeric_cols = [c for c in df.select_dtypes(include=[np.number]).columns if c != target]
+            numeric_cols = [c for c in get_numeric_cols(df) if c != target]
             for i, c1 in enumerate(numeric_cols[:5]):
                 for c2 in numeric_cols[i+1:6]:
                     df[f'{c1}_x_{c2}'] = df[c1] * df[c2]
                     self.feature_report["created_features"].append(f'{c1}_x_{c2}')
 
         # ---- Transform skewed features ----
-        for col in [c for c in df.select_dtypes(include=[np.number]).columns if c != target]:
+        for col in [c for c in get_numeric_cols(df) if c != target]:
             skew = df[col].skew()
             if pd.notna(skew) and abs(skew) > 1 and (df[col] > 0).all():
                 df[f'{col}_log'] = np.log1p(df[col])
                 self.feature_report["created_features"].append(f'{col}_log')
 
         # ---- Encode categorical ----
-        cat_cols = [c for c in df.select_dtypes(include=['object', 'category', 'string']).columns if c != target]
+        cat_cols = [c for c in get_categorical_cols(df) if c != target]
         for col in cat_cols:
             n_unique = df[col].nunique()
             if n_unique == 2:
@@ -207,7 +205,7 @@ class FeatureEngineerAgent(BaseAgent):
 
         # ---- Scale numerical ----
         if task.get("scaling", "standard") != "none":
-            numeric_cols = [c for c in df.select_dtypes(include=[np.number]).columns if c != target]
+            numeric_cols = [c for c in get_numeric_cols(df) if c != target]
             for col in numeric_cols:
                 mean, std = df[col].mean(), df[col].std()
                 if std > 0:
@@ -227,13 +225,9 @@ class FeatureEngineerAgent(BaseAgent):
         if df is None:
             return TaskResult(success=False, error="No dataframe provided")
 
-        df = df.copy()
-        for col in df.columns:
-            if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                df[col] = df[col].astype(object)
-
+        df = _sanitize_dataframe(df.copy())
         target = task.get("target_column")
-        for col in [c for c in df.select_dtypes(include=['object', 'category', 'string']).columns if c != target]:
+        for col in [c for c in get_categorical_cols(df) if c != target]:
             if df[col].nunique() <= 10:
                 dummies = pd.get_dummies(df[col], prefix=col, drop_first=True)
                 df = pd.concat([df.drop(columns=[col]), dummies], axis=1)
@@ -248,7 +242,7 @@ class FeatureEngineerAgent(BaseAgent):
             return TaskResult(success=False, error="No dataframe provided")
 
         target = task.get("target_column")
-        for col in [c for c in df.select_dtypes(include=[np.number]).columns if c != target]:
+        for col in [c for c in get_numeric_cols(df) if c != target]:
             mean, std = df[col].mean(), df[col].std()
             if std > 0:
                 df[col] = (df[col] - mean) / std

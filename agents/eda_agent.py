@@ -9,14 +9,17 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from scipy import stats
 
-from .base_agent import BaseAgent, TaskResult
+from .base_agent import (
+    BaseAgent, TaskResult, _sanitize_dataframe,
+    get_numeric_cols, get_categorical_cols, get_numeric_df,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class EDAAgent(BaseAgent):
     """Agent for Exploratory Data Analysis."""
-    
+
     def __init__(self):
         super().__init__(
             name="EDAAgent",
@@ -24,13 +27,13 @@ class EDAAgent(BaseAgent):
             capabilities=["statistical_profiling", "distribution_analysis", "correlation_analysis", "insight_generation"]
         )
         self.eda_report: Dict[str, Any] = {}
-    
+
     def get_system_prompt(self) -> str:
         return "You are an expert EDA Agent."
 
     async def execute(self, task: Dict[str, Any]) -> TaskResult:
         action = task.get("action", "full_eda")
-        
+
         try:
             if action == "full_eda":
                 return await self._full_eda(task)
@@ -41,7 +44,7 @@ class EDAAgent(BaseAgent):
             return TaskResult(success=False, error=f"Unknown action: {action}")
         except Exception as e:
             return TaskResult(success=False, error=str(e))
-    
+
     async def _full_eda(self, task: Dict[str, Any]) -> TaskResult:
         df = task.get("dataframe")
         if df is None:
@@ -51,12 +54,7 @@ class EDAAgent(BaseAgent):
             else:
                 return TaskResult(success=False, error="No dataframe provided")
 
-        df = df.copy()
-        # Convert pandas 3.x StringDtype to object for numpy compatibility
-        for col in df.columns:
-            if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                df[col] = df[col].astype(object)
-
+        df = _sanitize_dataframe(df.copy())
         target_column = task.get("target_column")
 
         self.eda_report = {
@@ -68,20 +66,20 @@ class EDAAgent(BaseAgent):
             "insights": [],
             "recommendations": []
         }
-        
+
         if target_column and target_column in df.columns:
             self.eda_report["target_analysis"] = self._analyze_target(df, target_column)
-        
+
         insights = self._generate_insights(df, target_column)
         self.eda_report["insights"] = insights["insights"]
         self.eda_report["recommendations"] = insights["recommendations"]
-        
+
         return TaskResult(
             success=True,
             data=self.eda_report,
             metrics={"columns_analyzed": len(df.columns), "insights_generated": len(self.eda_report["insights"])}
         )
-    
+
     def _get_dataset_info(self, df: pd.DataFrame) -> Dict[str, Any]:
         return {
             "shape": {"rows": df.shape[0], "columns": df.shape[1]},
@@ -91,11 +89,11 @@ class EDAAgent(BaseAgent):
             "missing_values": df.isnull().sum().to_dict(),
             "duplicates": int(df.duplicated().sum())
         }
-    
+
     def _compute_statistical_profile(self, df: pd.DataFrame) -> Dict[str, Any]:
         profile = {"numeric": {}, "categorical": {}}
-        
-        for col in df.select_dtypes(include=[np.number]).columns:
+
+        for col in get_numeric_cols(df):
             data = df[col].dropna()
             if len(data) == 0:
                 continue
@@ -105,8 +103,8 @@ class EDAAgent(BaseAgent):
                 "50%": float(data.quantile(0.50)), "75%": float(data.quantile(0.75)),
                 "max": float(data.max()), "skewness": float(data.skew()), "kurtosis": float(data.kurtosis())
             }
-        
-        for col in df.select_dtypes(include=['object', 'category', 'string']).columns:
+
+        for col in get_categorical_cols(df):
             data = df[col].dropna()
             if len(data) == 0:
                 continue
@@ -116,12 +114,12 @@ class EDAAgent(BaseAgent):
                 "top": str(vc.index[0]) if len(vc) > 0 else None,
                 "top_freq": int(vc.iloc[0]) if len(vc) > 0 else 0
             }
-        
+
         return profile
-    
+
     def _analyze_distributions(self, df: pd.DataFrame) -> Dict[str, Any]:
         distributions = {}
-        for col in df.select_dtypes(include=[np.number]).columns:
+        for col in get_numeric_cols(df):
             data = df[col].dropna()
             if len(data) < 10:
                 continue
@@ -132,12 +130,12 @@ class EDAAgent(BaseAgent):
                 "skew_type": "symmetric" if abs(skewness) < 0.5 else ("right_skewed" if skewness > 0 else "left_skewed")
             }
         return distributions
-    
+
     def _compute_correlations(self, df: pd.DataFrame) -> Dict[str, Any]:
-        numeric_df = df.select_dtypes(include=[np.number])
+        numeric_df = get_numeric_df(df)
         if numeric_df.shape[1] < 2:
             return {"message": "Not enough numeric columns"}
-        
+
         corr = numeric_df.corr()
         high_corr = []
         for i in range(len(corr.columns)):
@@ -148,9 +146,9 @@ class EDAAgent(BaseAgent):
                         "feature2": corr.columns[j],
                         "correlation": float(corr.iloc[i, j])
                     })
-        
+
         return {"correlation_matrix": corr.to_dict(), "high_correlations": high_corr}
-    
+
     def _analyze_target(self, df: pd.DataFrame, target: str) -> Dict[str, Any]:
         target_data = df[target]
         analysis = {"column": target, "dtype": str(target_data.dtype), "unique": int(target_data.nunique())}
@@ -167,41 +165,35 @@ class EDAAgent(BaseAgent):
             }
 
         return analysis
-    
+
     def _generate_insights(self, df: pd.DataFrame, target: Optional[str] = None) -> Dict[str, Any]:
         insights, recommendations = [], []
-        
+
         total_cells = len(df) * len(df.columns)
         missing_pct = df.isnull().sum().sum() / total_cells * 100 if total_cells > 0 else 0
         if missing_pct > 10:
             insights.append(f"⚠️ {missing_pct:.1f}% missing values detected")
             recommendations.append("Implement sophisticated imputation")
-        
+
         if df.duplicated().sum() > len(df) * 0.05:
             insights.append(f"🔄 {df.duplicated().sum() / len(df) * 100:.1f}% duplicate rows")
-        
-        for col in df.select_dtypes(include=[np.number]).columns[:5]:
+
+        for col in get_numeric_cols(df)[:5]:
             if abs(df[col].skew()) > 2:
                 insights.append(f"📈 '{col}' is highly skewed")
-        
+
         return {"insights": insights, "recommendations": recommendations}
-    
+
     async def _statistical_profile(self, task: Dict[str, Any]) -> TaskResult:
         df = task.get("dataframe")
         if df is None:
             return TaskResult(success=False, error="No dataframe provided")
-        df = df.copy()
-        for col in df.columns:
-            if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                df[col] = df[col].astype(object)
+        df = _sanitize_dataframe(df.copy())
         return TaskResult(success=True, data=self._compute_statistical_profile(df))
 
     async def _correlation_analysis(self, task: Dict[str, Any]) -> TaskResult:
         df = task.get("dataframe")
         if df is None:
             return TaskResult(success=False, error="No dataframe provided")
-        df = df.copy()
-        for col in df.columns:
-            if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
-                df[col] = df[col].astype(object)
+        df = _sanitize_dataframe(df.copy())
         return TaskResult(success=True, data=self._compute_correlations(df))
