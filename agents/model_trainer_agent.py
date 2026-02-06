@@ -60,9 +60,14 @@ def _is_text_column(df: pd.DataFrame, col: str) -> bool:
 def _prepare_features(df: pd.DataFrame, target_column: str) -> tuple:
     """Prepare features by encoding categoricals and dropping unusable columns.
 
-    Returns (X, id_cols_dropped, encoded_cols) where X is a fully numeric DataFrame.
+    Returns (X, id_cols_dropped, text_cols_dropped, encoded_cols) where X is a fully numeric DataFrame.
     """
     feature_df = df.drop(columns=[target_column])
+
+    # Convert pandas 3.x StringDtype to object for numpy compatibility
+    str_dtype_cols = feature_df.select_dtypes(include=['string']).columns
+    if len(str_dtype_cols) > 0:
+        feature_df[str_dtype_cols] = feature_df[str_dtype_cols].astype(object)
 
     # Drop ID-like columns
     id_cols = [c for c in feature_df.columns if _is_id_column(feature_df, c)]
@@ -139,6 +144,12 @@ class ModelTrainerAgent(BaseAgent):
         target_column = task.get("target_column")
         if target_column is None or target_column not in df.columns:
             return TaskResult(success=False, error="Invalid target column")
+
+        df = df.copy()
+        # Convert pandas 3.x StringDtype to object for numpy compatibility
+        str_dtype_cols = df.select_dtypes(include=['string']).columns
+        if len(str_dtype_cols) > 0:
+            df[str_dtype_cols] = df[str_dtype_cols].astype(object)
 
         cv_folds = task.get("cv_folds", 5)
 

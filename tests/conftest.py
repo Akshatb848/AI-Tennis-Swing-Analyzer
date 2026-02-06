@@ -68,3 +68,20 @@ def sample_categorical_target_df():
         "status": np.random.choice(["Active", "Inactive", "Pending"], n),
     })
     return df
+
+
+@pytest.fixture
+def sample_stringdtype_df():
+    """Dataset with pandas 3.x StringDtype columns to test numpy compatibility."""
+    np.random.seed(42)
+    n = 100
+    df = pd.DataFrame({
+        "age": np.random.randint(18, 65, n),
+        "income": np.random.uniform(20000, 150000, n),
+        "score": np.random.randn(n),
+        "category": pd.array(np.random.choice(["A", "B", "C"], n), dtype="string"),
+        "product": pd.array(np.random.choice(["Laptop", "Phone", "Tablet", "Watch", "Camera"], n), dtype="string"),
+        "status": pd.array(np.random.choice(["Active", "Inactive", "Pending"], n), dtype="string"),
+        "target": np.random.choice([0, 1], n),
+    })
+    return df
