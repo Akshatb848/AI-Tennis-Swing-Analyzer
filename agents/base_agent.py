@@ -14,8 +14,28 @@ from dataclasses import dataclass, field
 from enum import Enum
 import traceback
 
+import numpy as np
+import pandas as pd
+
+# CRITICAL: Disable pandas 3.x StringDtype globally at the earliest import.
+# This must happen before ANY DataFrame is created anywhere in the codebase.
+pd.set_option("future.infer_string", False)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert pandas 3.x StringDtype columns to plain object for numpy compat.
+
+    pandas 3.0 with future.infer_string=True makes all string columns use
+    StringDtype (shows as 'str' or 'string'), which breaks numpy operations
+    (corr, get_dummies, factorize, select_dtypes). Convert to plain 'object'.
+    """
+    for col in df.columns:
+        if pd.api.types.is_string_dtype(df[col]) and df[col].dtype != "object":
+            df[col] = df[col].astype(object)
+    return df
 
 
 class AgentState(Enum):
@@ -207,15 +227,20 @@ class BaseAgent(ABC):
         """Run the agent with retry logic and error handling."""
         task_id = task.get("id") or generate_uuid()
         start_time = datetime.now()
-        
+
+        # CRITICAL: Sanitize ALL DataFrames in the task before any agent code
+        # touches them. This is the single gateway for all agents — no
+        # StringDtype can leak past this point.
+        self._sanitize_task_dataframes(task)
+
         self._set_state(AgentState.RUNNING)
         self.current_task = task
         self.last_active = datetime.now()
-        
+
         for attempt in range(self.max_retries):
             try:
                 logger.info(f"Agent '{self.name}' executing task {task_id} (attempt {attempt + 1}/{self.max_retries})")
-                
+
                 result = await asyncio.wait_for(
                     self.execute(task),
                     timeout=self.timeout
@@ -272,6 +297,18 @@ class BaseAgent(ABC):
         
         return TaskResult(success=False, error="Unknown error", agent_name=self.name, task_id=task_id)
     
+    @staticmethod
+    def _sanitize_task_dataframes(task: Dict[str, Any]) -> None:
+        """Sanitize every DataFrame found in the task dict (in-place).
+
+        Scans top-level values for pd.DataFrame and converts StringDtype
+        columns to plain object.  This runs once in BaseAgent.run() so
+        *every* agent benefits regardless of its own implementation.
+        """
+        for key, val in task.items():
+            if isinstance(val, pd.DataFrame):
+                _sanitize_dataframe(val)
+
     def _set_state(self, new_state: AgentState):
         old_state = self.state
         self.state = new_state
