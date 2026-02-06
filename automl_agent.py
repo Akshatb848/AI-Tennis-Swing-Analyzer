@@ -1,0 +1,205 @@
+"""
+AutoML Agent - Automated Model Selection
+"""
+
+import logging
+import numpy as np
+import pandas as pd
+from typing import Dict, Any, Optional, List, Tuple
+from datetime import datetime
+
+from .base_agent import BaseAgent, TaskResult
+
+logger = logging.getLogger(__name__)
+
+
+class AutoMLAgent(BaseAgent):
+    """Agent for automated machine learning."""
+    
+    def __init__(self):
+        super().__init__(
+            name="AutoMLAgent",
+            description="Automated machine learning and model selection",
+            capabilities=["auto_model_selection", "data_analysis", "model_recommendation"]
+        )
+        self.recommendations: List[Dict[str, Any]] = []
+        self.automl_report: Dict[str, Any] = {}
+    
+    def get_system_prompt(self) -> str:
+        return "You are an expert AutoML Agent."
+
+    async def execute(self, task: Dict[str, Any]) -> TaskResult:
+        action = task.get("action", "auto_select_models")
+        
+        try:
+            if action == "auto_select_models":
+                return await self._auto_select_models(task)
+            elif action == "recommend_models":
+                return await self._recommend_models(task)
+            elif action == "analyze_data_for_ml":
+                return await self._analyze_data(task)
+            return TaskResult(success=False, error=f"Unknown action: {action}")
+        except Exception as e:
+            return TaskResult(success=False, error=str(e))
+    
+    async def _auto_select_models(self, task: Dict[str, Any]) -> TaskResult:
+        df = task.get("dataframe")
+        if df is None:
+            return TaskResult(success=False, error="No dataframe provided")
+        
+        target_column = task.get("target_column")
+        if target_column is None or target_column not in df.columns:
+            return TaskResult(success=False, error="Invalid target column")
+        
+        # Analyze data
+        data_analysis = self._analyze_data_characteristics(df, target_column)
+        task_type = data_analysis["suggested_task_type"]
+        
+        # Get recommendations
+        recommendations = self._get_model_recommendations(data_analysis, task_type)
+        self.recommendations = recommendations
+        
+        # Prepare data
+        X = df.drop(columns=[target_column]).select_dtypes(include=[np.number]).fillna(0)
+        y = df[target_column]
+        
+        from sklearn.model_selection import train_test_split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # Train recommended models
+        results = {}
+        for rec in recommendations[:5]:
+            model_name = rec["model"]
+            try:
+                model, metrics = self._train_and_evaluate(model_name, X_train, X_test, y_train, y_test, task_type)
+                results[model_name] = {
+                    "metrics": metrics,
+                    "recommendation_score": rec["score"],
+                    "reasons": rec["reasons"]
+                }
+            except Exception as e:
+                logger.error(f"Error training {model_name}: {e}")
+        
+        best_model = max(results, key=lambda k: results[k]["metrics"].get("accuracy" if task_type == "classification" else "r2", 0)) if results else None
+        
+        self.automl_report = {
+            "timestamp": datetime.now().isoformat(),
+            "data_analysis": data_analysis,
+            "task_type": task_type,
+            "recommendations": recommendations,
+            "results": results,
+            "best_model": best_model
+        }
+        
+        return TaskResult(success=True, data=self.automl_report, metrics={"models_evaluated": len(results)})
+    
+    def _analyze_data_characteristics(self, df: pd.DataFrame, target_column: str) -> Dict[str, Any]:
+        target = df[target_column]
+        features = df.drop(columns=[target_column])
+        
+        n_samples = len(df)
+        n_features = len(features.columns)
+        is_classification = target.nunique() <= 10 or target.dtype == 'object'
+        
+        class_balance = None
+        if is_classification:
+            vc = target.value_counts()
+            class_balance = vc.max() / vc.min() if vc.min() > 0 else float('inf')
+        
+        return {
+            "n_samples": n_samples,
+            "n_features": n_features,
+            "n_numeric": len(features.select_dtypes(include=[np.number]).columns),
+            "n_categorical": len(features.select_dtypes(include=['object', 'category']).columns),
+            "is_classification": is_classification,
+            "suggested_task_type": "classification" if is_classification else "regression",
+            "class_balance_ratio": class_balance,
+            "is_imbalanced": class_balance > 3 if class_balance else False,
+            "is_small_dataset": n_samples < 1000,
+            "is_large_dataset": n_samples > 100000
+        }
+    
+    def _get_model_recommendations(self, data_analysis: Dict, task_type: str) -> List[Dict]:
+        recommendations = []
+        is_small = data_analysis.get("is_small_dataset", False)
+        
+        if task_type == "classification":
+            recommendations = [
+                {"model": "RandomForestClassifier", "score": 0.9, "reasons": ["Robust", "Feature importance"]},
+                {"model": "GradientBoostingClassifier", "score": 0.85, "reasons": ["High accuracy"]},
+                {"model": "LogisticRegression", "score": 0.7, "reasons": ["Fast", "Interpretable"]},
+                {"model": "DecisionTreeClassifier", "score": 0.65, "reasons": ["Interpretable"]},
+                {"model": "KNeighborsClassifier", "score": 0.6, "reasons": ["Simple"]}
+            ]
+        else:
+            recommendations = [
+                {"model": "RandomForestRegressor", "score": 0.85, "reasons": ["Robust"]},
+                {"model": "GradientBoostingRegressor", "score": 0.88, "reasons": ["High accuracy"]},
+                {"model": "Ridge", "score": 0.7, "reasons": ["Regularized"]},
+                {"model": "LinearRegression", "score": 0.6, "reasons": ["Fast", "Interpretable"]},
+                {"model": "DecisionTreeRegressor", "score": 0.55, "reasons": ["Interpretable"]}
+            ]
+        
+        return sorted(recommendations, key=lambda x: x["score"], reverse=True)
+    
+    def _train_and_evaluate(self, model_name: str, X_train, X_test, y_train, y_test, task_type: str) -> Tuple[Any, Dict]:
+        from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
+        from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor
+        from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+        from sklearn.neighbors import KNeighborsClassifier
+        
+        model_map = {
+            "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
+            "RandomForestClassifier": RandomForestClassifier(n_estimators=100, random_state=42),
+            "GradientBoostingClassifier": GradientBoostingClassifier(n_estimators=100, random_state=42),
+            "DecisionTreeClassifier": DecisionTreeClassifier(random_state=42),
+            "KNeighborsClassifier": KNeighborsClassifier(),
+            "LinearRegression": LinearRegression(),
+            "Ridge": Ridge(random_state=42),
+            "RandomForestRegressor": RandomForestRegressor(n_estimators=100, random_state=42),
+            "GradientBoostingRegressor": GradientBoostingRegressor(n_estimators=100, random_state=42),
+            "DecisionTreeRegressor": DecisionTreeRegressor(random_state=42)
+        }
+        
+        model = model_map.get(model_name)
+        if model is None:
+            raise ValueError(f"Unknown model: {model_name}")
+        
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        
+        if task_type == "classification":
+            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+            metrics = {
+                "accuracy": float(accuracy_score(y_test, y_pred)),
+                "precision": float(precision_score(y_test, y_pred, average='weighted', zero_division=0)),
+                "recall": float(recall_score(y_test, y_pred, average='weighted', zero_division=0)),
+                "f1": float(f1_score(y_test, y_pred, average='weighted', zero_division=0))
+            }
+        else:
+            from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+            metrics = {
+                "mse": float(mean_squared_error(y_test, y_pred)),
+                "rmse": float(np.sqrt(mean_squared_error(y_test, y_pred))),
+                "mae": float(mean_absolute_error(y_test, y_pred)),
+                "r2": float(r2_score(y_test, y_pred))
+            }
+        
+        return model, metrics
+    
+    async def _recommend_models(self, task: Dict[str, Any]) -> TaskResult:
+        df = task.get("dataframe")
+        target = task.get("target_column")
+        if df is None or target is None:
+            return TaskResult(success=False, error="Missing data")
+        
+        analysis = self._analyze_data_characteristics(df, target)
+        recs = self._get_model_recommendations(analysis, analysis["suggested_task_type"])
+        return TaskResult(success=True, data={"analysis": analysis, "recommendations": recs})
+    
+    async def _analyze_data(self, task: Dict[str, Any]) -> TaskResult:
+        df = task.get("dataframe")
+        target = task.get("target_column")
+        if df is None or target is None:
+            return TaskResult(success=False, error="Missing data")
+        return TaskResult(success=True, data=self._analyze_data_characteristics(df, target))
