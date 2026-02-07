@@ -31,6 +31,9 @@ from .model_trainer_agent import ModelTrainerAgent
 from .automl_agent import AutoMLAgent
 from .dashboard_builder_agent import DashboardBuilderAgent
 from .data_visualizer_agent import DataVisualizerAgent
+from .forecast_agent import ForecastAgent
+from .insights_agent import InsightsAgent
+from .report_generator_agent import ReportGeneratorAgent
 
 __all__ = [
     "BaseAgent",
@@ -49,5 +52,8 @@ __all__ = [
     "ModelTrainerAgent",
     "AutoMLAgent",
     "DashboardBuilderAgent",
-    "DataVisualizerAgent"
+    "DataVisualizerAgent",
+    "ForecastAgent",
+    "InsightsAgent",
+    "ReportGeneratorAgent",
 ]

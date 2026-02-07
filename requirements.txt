@@ -18,6 +18,9 @@ seaborn>=0.13.0
 # Statistical Analysis
 scipy>=1.11.0
 
+# Time Series Forecasting
+prophet>=1.1.5
+
 # LLM Integration (install provider packages as needed)
 openai>=1.10.0
 anthropic>=0.18.0

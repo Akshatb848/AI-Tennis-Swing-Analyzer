@@ -32,6 +32,9 @@ from agents.model_trainer_agent import ModelTrainerAgent
 from agents.automl_agent import AutoMLAgent
 from agents.dashboard_builder_agent import DashboardBuilderAgent
 from agents.data_visualizer_agent import DataVisualizerAgent
+from agents.forecast_agent import ForecastAgent
+from agents.insights_agent import InsightsAgent
+from agents.report_generator_agent import ReportGeneratorAgent
 from llm.client import get_llm_client
 from llm.prompts import PromptTemplates
 from utils.helpers import generate_sample_data
@@ -44,29 +47,235 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS
-st.markdown(
-    """
+# Custom CSS — glassmorphism dark theme
+st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+        --primary: #6366f1;
+        --primary-light: #818cf8;
+        --secondary: #10b981;
+        --accent: #f59e0b;
+        --danger: #ef4444;
+        --background: #0f172a;
+        --surface: #1e293b;
+        --text: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: rgba(99, 102, 241, 0.2);
+    }
+
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 30%, #0f172a 70%, #1e1b4b 100%);
+        font-family: 'DM Sans', 'Inter', sans-serif;
+    }
+
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+
     .main-header {
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #10b981 50%, #f59e0b 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        background-clip: text;
         text-align: center;
         margin-bottom: 0.5rem;
     }
+
     .sub-header {
         text-align: center;
-        color: #666;
+        color: #94a3b8;
         margin-bottom: 1rem;
-        font-size: 0.95rem;
+        font-size: 1rem;
     }
+
+    /* Metric cards */
+    .metric-card {
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.7));
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #6366f1, #10b981);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .metric-card:hover {
+        border-color: rgba(99, 102, 241, 0.5);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(99, 102, 241, 0.25);
+    }
+
+    .metric-card:hover::before { opacity: 1; }
+
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #6366f1, #818cf8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .metric-label {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Narrative card */
+    .narrative-card {
+        background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(30, 41, 59, 0.9));
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-left: 4px solid #10b981;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        line-height: 1.7;
+    }
+
+    .narrative-card h4 { color: #10b981; margin-bottom: 0.75rem; }
+    .narrative-card p { color: #e2e8f0; font-size: 1rem; }
+
+    /* Insight cards */
+    .insight-card {
+        background: linear-gradient(145deg, rgba(99, 102, 241, 0.08), rgba(16, 185, 129, 0.04));
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .insight-card:hover {
+        border-color: rgba(99, 102, 241, 0.5);
+        transform: translateX(4px);
+    }
+
+    .insight-card.high-priority { border-left: 4px solid #ef4444; }
+    .insight-card.medium-priority { border-left: 4px solid #f59e0b; }
+    .insight-card.low-priority { border-left: 4px solid #10b981; }
+
+    .insight-icon { font-size: 1.5rem; margin-right: 0.75rem; }
+    .insight-title { color: #f1f5f9; font-weight: 600; font-size: 1rem; }
+
+    .insight-narrative {
+        color: #e2e8f0;
+        font-size: 0.95rem;
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        background: rgba(30, 41, 59, 0.5);
+        border-radius: 8px;
+        line-height: 1.6;
+        border-left: 3px solid #6366f1;
+    }
+
+    /* Recommendation cards */
+    .recommendation-card {
+        background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.05));
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .recommendation-card:hover {
+        border-color: rgba(16, 185, 129, 0.6);
+        box-shadow: 0 8px 30px rgba(16, 185, 129, 0.15);
+    }
+
+    .recommendation-title { color: #10b981; font-weight: 600; font-size: 1rem; }
+    .recommendation-description { color: #d1d5db; font-size: 0.95rem; margin-top: 0.75rem; line-height: 1.6; }
+
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 600 !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+    }
+
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4) !important;
+    }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+    }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+        background: rgba(30, 41, 59, 0.7);
+        border-radius: 16px;
+        padding: 0.5rem;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 12px;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+        color: white !important;
+    }
+
+    /* Expander */
+    .streamlit-expanderHeader {
+        background: rgba(30, 41, 59, 0.7) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    }
+
+    /* DataFrames */
+    .stDataFrame {
+        border: 1px solid rgba(99, 102, 241, 0.2) !important;
+        border-radius: 16px !important;
+        overflow: hidden !important;
+    }
+
+    /* Progress bar */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #6366f1, #10b981, #f59e0b) !important;
+        border-radius: 10px !important;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-in { animation: fadeIn 0.6s ease-out; }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 
 # ---------- helpers ----------
@@ -117,6 +326,9 @@ def init_session_state():
         coordinator.register_agent(AutoMLAgent())
         coordinator.register_agent(DashboardBuilderAgent())
         coordinator.register_agent(DataVisualizerAgent())
+        coordinator.register_agent(ForecastAgent())
+        coordinator.register_agent(InsightsAgent())
+        coordinator.register_agent(ReportGeneratorAgent())
         st.session_state.coordinator = coordinator
 
     defaults = {
@@ -293,11 +505,88 @@ def render_chat():
                 st.dataframe(pd.DataFrame(msg["metrics_table"]), use_container_width=True)
             if "dashboard" in msg:
                 _render_professional_dashboard(msg["dashboard"])
+            if "insights_panel" in msg:
+                _render_insights_panel(msg["insights_panel"])
+            if "report_downloads" in msg:
+                _render_report_downloads(msg["report_downloads"])
+
+
+def _render_insights_panel(panel_data):
+    """Render business insights and recommendations."""
+    summary = panel_data.get("executive_summary", "")
+    if summary:
+        st.markdown(f"""<div class="narrative-card"><h4>Executive Summary</h4><p>{summary}</p></div>""", unsafe_allow_html=True)
+
+    insights = panel_data.get("insights", [])
+    if insights:
+        st.markdown("#### Key Findings")
+        for ins in insights[:10]:
+            prio = ins.get("priority", "low")
+            prio_class = f"{prio}-priority"
+            icon = {"high": "🔴", "medium": "🟡"}.get(prio, "🟢")
+            title = ins.get("title", "")
+            narrative = ins.get("narrative", "")
+            st.markdown(
+                f"""<div class="insight-card {prio_class}">
+                    <span class="insight-icon">{icon}</span>
+                    <span class="insight-title">{title}</span>
+                    <div class="insight-narrative">{narrative}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+    recs = panel_data.get("recommendations", [])
+    if recs:
+        st.markdown("#### Recommendations")
+        for r in recs[:6]:
+            action = r.get("action", "")
+            detail = r.get("detail", "")
+            st.markdown(
+                f"""<div class="recommendation-card">
+                    <div class="recommendation-title">💡 {action}</div>
+                    <div class="recommendation-description">{detail}</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+
+def _render_report_downloads(report_data):
+    """Render download buttons for generated reports."""
+    st.markdown("#### Export Report")
+    c1, c2, c3 = st.columns(3)
+    html_content = report_data.get("html")
+    md_content = report_data.get("markdown")
+    csv_content = report_data.get("csv_summary")
+    title = report_data.get("title", "report")
+    safe_title = title.lower().replace(" ", "_")
+
+    if html_content:
+        c1.download_button(
+            "📄 Download HTML",
+            data=html_content,
+            file_name=f"{safe_title}.html",
+            mime="text/html",
+        )
+    if md_content:
+        c2.download_button(
+            "📝 Download Markdown",
+            data=md_content,
+            file_name=f"{safe_title}.md",
+            mime="text/markdown",
+        )
+    if csv_content:
+        c3.download_button(
+            "📊 Download CSV",
+            data=csv_content,
+            file_name=f"{safe_title}_summary.csv",
+            mime="text/csv",
+        )
 
 
 def _render_charts(charts):
     """Render plotly charts stored in a message."""
     import plotly.express as px
+    import plotly.graph_objects as go
 
     for chart in charts:
         ctype = chart.get("type")
@@ -336,6 +625,47 @@ def _render_charts(charts):
                 x=chart["data"]["labels"],
                 y=chart["data"]["values"],
                 title=chart.get("title", ""),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        elif ctype == "forecast_line":
+            data = chart["data"]
+            fig = go.Figure()
+            # Historical values
+            if data.get("historical_values") and data.get("dates"):
+                n_hist = len(data["historical_values"])
+                fig.add_trace(go.Scatter(
+                    x=data["dates"][:n_hist],
+                    y=data["historical_values"],
+                    name="Historical",
+                    mode="lines",
+                    line=dict(color="#6366f1", width=2),
+                ))
+            # Forecast values
+            if data.get("forecast_values") and data.get("dates"):
+                n_hist = len(data.get("historical_values", []))
+                fig.add_trace(go.Scatter(
+                    x=data["dates"][n_hist:] if n_hist else data["dates"],
+                    y=data["forecast_values"],
+                    name="Forecast",
+                    mode="lines",
+                    line=dict(color="#10b981", width=2, dash="dash"),
+                ))
+            # Confidence interval
+            if data.get("upper_bound") and data.get("lower_bound"):
+                n_hist = len(data.get("historical_values", []))
+                forecast_dates = data["dates"][n_hist:] if n_hist else data["dates"]
+                fig.add_trace(go.Scatter(
+                    x=list(forecast_dates) + list(reversed(forecast_dates)),
+                    y=list(data["upper_bound"]) + list(reversed(data["lower_bound"])),
+                    fill="toself",
+                    fillcolor="rgba(16, 185, 129, 0.1)",
+                    line=dict(color="rgba(16, 185, 129, 0)"),
+                    name="95% Confidence",
+                ))
+            fig.update_layout(
+                title=chart.get("title", "Forecast"),
+                template="plotly_white",
+                height=400,
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -553,6 +883,13 @@ async def _run_single_agent(intent_result: dict, user_context: str):
         task["eda_report"] = st.session_state.analysis_results.get("eda", {})
         task["model_results"] = st.session_state.analysis_results.get("modeling", {})
         task["cleaning_report"] = st.session_state.analysis_results.get("cleaning", {})
+    if action == "generate_report":
+        task["eda_report"] = st.session_state.analysis_results.get("eda", {})
+        task["model_results"] = st.session_state.analysis_results.get("modeling", {})
+        # Collect insights from previous InsightsAgent run if available
+        prev_insights = st.session_state.analysis_results.get("insights", {})
+        task["insights"] = prev_insights.get("insights", [])
+        task["recommendations"] = prev_insights.get("recommendations", [])
 
     # Execute
     result = await agent.run(task)
@@ -671,6 +1008,9 @@ def _store_agent_result(agent_name: str, action: str, result_data: dict):
         "AutoMLAgent": "automl",
         "DataVisualizerAgent": "visualization",
         "DashboardBuilderAgent": "dashboard",
+        "ForecastAgent": "forecast",
+        "InsightsAgent": "insights",
+        "ReportGeneratorAgent": "report",
     }
     key = key_map.get(agent_name, agent_name)
     st.session_state.analysis_results[key] = result_data
@@ -705,6 +1045,30 @@ def _extract_message_extras(agent_name: str, result_data: dict) -> dict:
 
     elif agent_name == "DashboardBuilderAgent":
         extras["dashboard"] = result_data.get("components", [])
+
+    elif agent_name == "ForecastAgent":
+        forecast = result_data.get("forecast", {})
+        if forecast and forecast.get("dates") and forecast.get("forecast_values"):
+            extras["charts"] = [{
+                "type": "forecast_line",
+                "title": f"Forecast: {forecast.get('metric', 'Metric')}",
+                "data": forecast,
+            }]
+
+    elif agent_name == "InsightsAgent":
+        extras["insights_panel"] = {
+            "insights": result_data.get("insights", []),
+            "recommendations": result_data.get("recommendations", []),
+            "executive_summary": result_data.get("executive_summary", ""),
+        }
+
+    elif agent_name == "ReportGeneratorAgent":
+        extras["report_downloads"] = {
+            "html": result_data.get("html"),
+            "markdown": result_data.get("markdown"),
+            "csv_summary": result_data.get("csv_summary"),
+            "title": result_data.get("title", "Report"),
+        }
 
     return extras
 
@@ -741,11 +1105,11 @@ def main():
 
     # Header
     st.markdown(
-        '<h1 class="main-header">🔬 Data Science Agent Platform</h1>',
+        '<h1 class="main-header">🔬 AI Data Science Platform</h1>',
         unsafe_allow_html=True,
     )
     st.markdown(
-        '<p class="sub-header">Chat with your AI Data Scientist — upload data, ask questions, get insights</p>',
+        '<p class="sub-header">Chat with your AI Data Scientist — upload data, ask questions, get insights, forecast trends</p>',
         unsafe_allow_html=True,
     )
 
@@ -779,6 +1143,10 @@ def main():
                 st.dataframe(pd.DataFrame(extras["metrics_table"]), use_container_width=True)
             if "dashboard" in extras:
                 _render_professional_dashboard(extras["dashboard"])
+            if "insights_panel" in extras:
+                _render_insights_panel(extras["insights_panel"])
+            if "report_downloads" in extras:
+                _render_report_downloads(extras["report_downloads"])
 
         # Store in message history
         msg = {"role": "assistant", "content": response_text}

@@ -225,6 +225,12 @@ class FallbackClient(LLMClient):
             return {"intent": "run_agent", "agent": "AutoMLAgent", "action": "auto_select_models", "explanation": "Running AutoML model selection."}
         if any(w in msg for w in ["train", "model", "predict", "classif", "regress", "fit"]):
             return {"intent": "run_agent", "agent": "ModelTrainerAgent", "action": "train_models", "explanation": "Training machine learning models."}
+        if any(w in msg for w in ["forecast", "predict future", "time series", "prophet", "trend"]):
+            return {"intent": "run_agent", "agent": "ForecastAgent", "action": "forecast", "explanation": "Running time series forecast."}
+        if any(w in msg for w in ["insight", "finding", "discover", "narrative", "business"]):
+            return {"intent": "run_agent", "agent": "InsightsAgent", "action": "generate_insights", "explanation": "Generating business insights."}
+        if any(w in msg for w in ["export", "download report", "generate report", "html report", "markdown report"]):
+            return {"intent": "run_agent", "agent": "ReportGeneratorAgent", "action": "generate_report", "explanation": "Generating exportable report."}
         if any(w in msg for w in ["visual", "chart", "plot", "graph", "draw"]):
             return {"intent": "run_agent", "agent": "DataVisualizerAgent", "action": "generate_visualizations", "explanation": "Generating visualizations."}
         if any(w in msg for w in ["dashboard", "report", "summary"]):

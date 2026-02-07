@@ -71,6 +71,21 @@ def sample_categorical_target_df():
 
 
 @pytest.fixture
+def sample_timeseries_df():
+    """Time series dataset for forecast testing."""
+    np.random.seed(42)
+    n = 60
+    dates = pd.date_range("2023-01-01", periods=n, freq="D")
+    df = pd.DataFrame({
+        "date": dates,
+        "revenue": np.cumsum(np.random.randn(n) * 10 + 50) + 1000,
+        "units_sold": np.random.poisson(200, n).astype(float),
+        "region": np.random.choice(["East", "West", "North", "South"], n),
+    })
+    return df
+
+
+@pytest.fixture
 def sample_stringdtype_df():
     """Dataset with pandas 3.x StringDtype columns to test numpy compatibility."""
     np.random.seed(42)

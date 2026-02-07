@@ -274,7 +274,7 @@ class TestConversationalReply:
 class TestUIHelpers:
     def test_welcome_message(self, coordinator):
         msg = coordinator.get_welcome_message()
-        assert "Data Science Agent Platform" in msg
+        assert "AI Data Science Platform" in msg
 
     def test_help_message(self, coordinator):
         msg = coordinator.get_help_message()

@@ -368,6 +368,51 @@ class CoordinatorAgent(BaseAgent):
                 for rec in recs[:3]:
                     lines.append(f"  - {rec.get('model', '?')}: score {rec.get('score', 0):.2f} ({', '.join(rec.get('reasons', []))})")
 
+        elif agent_name == "ForecastAgent":
+            forecast = result_data.get("forecast", {})
+            if forecast:
+                periods = forecast.get("periods", 0)
+                metric = forecast.get("metric", "")
+                lines.append(f"- **Forecast metric**: {metric}")
+                lines.append(f"- **Periods ahead**: {periods}")
+                values = forecast.get("forecast_values", [])
+                if values:
+                    lines.append(f"- **Last predicted value**: {values[-1]:.2f}" if isinstance(values[-1], (int, float)) else "")
+            eligible = result_data.get("eligible_metrics", [])
+            if eligible:
+                lines.append(f"- **Forecast-eligible metrics**: {', '.join(eligible[:5])}")
+
+        elif agent_name == "InsightsAgent":
+            insights = result_data.get("insights", [])
+            high_count = sum(1 for i in insights if i.get("priority") == "high")
+            lines.append(f"- **Total insights**: {len(insights)} ({high_count} critical)")
+            for ins in insights[:5]:
+                prio = ins.get("priority", "")
+                narr = ins.get("narrative", ins.get("title", ""))
+                prefix = "[!]" if prio == "high" else "[-]"
+                lines.append(f"  {prefix} {narr}")
+            summary = result_data.get("executive_summary", "")
+            if summary:
+                lines.append(f"\n**Executive Summary:** {summary}")
+            recs = result_data.get("recommendations", [])
+            if recs:
+                lines.append("\n**Recommendations:**")
+                for r in recs[:4]:
+                    lines.append(f"- **{r.get('action', '')}**: {r.get('detail', '')}")
+
+        elif agent_name == "ReportGeneratorAgent":
+            title = result_data.get("title", "Report")
+            formats = []
+            if "markdown" in result_data:
+                formats.append("Markdown")
+            if "html" in result_data:
+                formats.append("HTML")
+            if "csv_summary" in result_data:
+                formats.append("CSV")
+            lines.append(f"- **Report**: {title}")
+            lines.append(f"- **Formats generated**: {', '.join(formats)}")
+            lines.append("- Use the download buttons below to export your report.")
+
         else:
             # Generic summary
             for key, value in list(result_data.items())[:5]:
@@ -467,7 +512,7 @@ class CoordinatorAgent(BaseAgent):
             lines.append("")
 
             # Suggest next steps based on what's been done
-            all_steps = ["cleaning", "eda", "feature_engineering", "modeling", "automl", "visualization", "dashboard"]
+            all_steps = ["cleaning", "eda", "feature_engineering", "modeling", "automl", "visualization", "dashboard", "insights", "forecast", "report"]
             remaining = [s for s in all_steps if s not in completed]
             if remaining:
                 next_suggestions = {
@@ -478,6 +523,9 @@ class CoordinatorAgent(BaseAgent):
                     "automl": "**\"Run AutoML\"** — automatically find the best model",
                     "visualization": "**\"Show visualizations\"** — generate charts and plots",
                     "dashboard": "**\"Build dashboard\"** — compile a summary report",
+                    "insights": "**\"Generate insights\"** — business intelligence analysis",
+                    "forecast": "**\"Forecast trends\"** — time series forecasting",
+                    "report": "**\"Generate report\"** — export HTML/Markdown/CSV report",
                 }
                 lines.append("**Suggested next steps:**")
                 for step in remaining[:3]:
@@ -795,13 +843,16 @@ class CoordinatorAgent(BaseAgent):
 
     def get_welcome_message(self) -> str:
         return (
-            "Welcome to the **Data Science Agent Platform**! I'm your AI data scientist.\n\n"
+            "Welcome to the **AI Data Science Platform**! I'm your AI data scientist.\n\n"
             "Here's what I can do:\n"
             "- **Analyze** your data (EDA, statistics, correlations)\n"
             "- **Clean** your dataset (missing values, duplicates, outliers)\n"
             "- **Engineer** features automatically\n"
             "- **Train** machine learning models and compare them\n"
             "- **Visualize** distributions, correlations, and more\n"
+            "- **Forecast** future trends with time series analysis\n"
+            "- **Generate insights** with business intelligence narratives\n"
+            "- **Export reports** in HTML, Markdown, or CSV formats\n"
             "- **Run a full pipeline** from cleaning to model training\n\n"
             "Upload a dataset using the sidebar, then ask me anything!"
         )
@@ -815,6 +866,9 @@ class CoordinatorAgent(BaseAgent):
             "- *\"Train models\"* — Train and compare ML models\n"
             "- *\"Run full analysis\"* — Execute the complete pipeline\n"
             "- *\"Show visualizations\"* — Generate charts and plots\n"
+            "- *\"Forecast trends\"* — Time series forecasting with Prophet\n"
+            "- *\"Generate insights\"* — Business intelligence analysis\n"
+            "- *\"Generate report\"* — Export HTML/Markdown/CSV report\n"
             "- *\"What's the status?\"* — Check current progress\n\n"
             "You can also ask data science questions in natural language!"
         )
