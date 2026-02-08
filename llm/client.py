@@ -367,10 +367,10 @@ async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResul
             max_tokens=5,
         )
         latency_ms = (time.monotonic() - start) * 1000
-        if not (response or "").strip():
+        if "ok" not in (response or "").lower():
             return LLMValidationResult(
                 state="invalid_response",
-                message="LLM responded with an empty payload.",
+                message="LLM responded but failed deterministic validation.",
                 provider=provider,
                 model=model,
                 latency_ms=latency_ms,

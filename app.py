@@ -36,6 +36,7 @@ from agents.forecast_agent import ForecastAgent
 from agents.insights_agent import InsightsAgent
 from agents.report_generator_agent import ReportGeneratorAgent
 from llm import get_llm_client, validate_llm_client, FallbackClient
+from llm.client import get_llm_client, validate_llm_client, FallbackClient
 from llm.prompts import PromptTemplates
 from utils.helpers import generate_sample_data
 
