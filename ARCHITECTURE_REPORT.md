@@ -1,6 +1,7 @@
 # Architecture & Failure-First Blueprint — Intelligent Data Scientist Agent
 
 ## 0) Scope & Non‑Negotiables
+This report audits the current repository and designs a failure‑proof, production‑grade Intelligent Data Scientist Agent. It focuses on correctness, robustness, explicit failure handling, LLM trust validation, and UI determinism (especially Streamlit element ID safety).
 This report audits the current repository and designs a failure‑proof, production‑grade Intelligent Data Scientist Agent. It focuses on correctness, robustness, explicit failure handling, and UI determinism (especially Streamlit element ID safety).
 
 ---
@@ -15,6 +16,7 @@ This report audits the current repository and designs a failure‑proof, product
 **Coordinator / Orchestration**
 - `CoordinatorAgent` is the master orchestrator with workflow planning, state, and conversational memory scaffolding.
 - The coordinator uses an LLM client (with a fallback) for intent analysis and result interpretation. It stores conversation history and analysis history, but it does **not** enforce strict workflow contracts, explicit retry/fallback boundaries per step, or UI‑safe execution checkpoints.
+ - LLM configuration is not validated against a live provider. The system can surface success messaging even when keys are invalid or empty, which undermines user trust and causes silent intelligence failures.
 
 **Specialized Agents**
 - Agents exist for data cleaning, EDA, feature engineering, modeling, AutoML, dashboards, data visualization, forecasting, insights, and report generation.
@@ -29,6 +31,7 @@ This report audits the current repository and designs a failure‑proof, product
 - **Assumption**: reruns are harmless. In Streamlit, reruns can re‑create identical elements without IDs, leading to collisions.
 - **Assumption**: UI rendering is stateless. In reality, `st.session_state` and automatic reruns create hidden dependencies between render order and element IDs.
 - **Assumption**: a single pass pipeline is sufficient. The coordinator lacks a robust step registry with explicit completion/rollback and does not isolate UI rendering from execution steps.
+- **Assumption**: LLM readiness is implied by configuration presence. The system does not verify real connectivity or tokened auth before claiming success.
 - **Coupling**: agent execution directly triggers UI rendering, which couples computation to UI lifecycle and rerun order.
 
 ### 1.4 Failure‑Aware Current Architecture Map (Textual)
@@ -70,16 +73,38 @@ UI Rendering
    - UI registry that tracks rendered elements per run
    - Consistent rerun ordering
 
+2) **LLM Configuration & Validation Layer (Critical)**
+   - Provider abstraction (OpenAI/Anthropic/Azure/etc.)
+   - Real authentication probe per provider
+   - Deterministic health check prompt and response validation
+   - Fail‑closed behavior (block downstream execution)
+   - State exposure: Connected ✅ / Auth failed ❌ / Rate limited ⚠️ / Misconfigured ❌
+
+3) **Intent & Task Intelligence Layer**
 2) **Intent & Task Intelligence Layer**
    - LLM intent classification with confidence and ambiguity detection
    - Task decomposition and sequencing
    - Clarification questions only when needed
 
+4) **Orchestration & Control Layer**
 3) **Orchestration & Control Layer**
    - State machine with explicit step boundaries
    - Retry/rollback logic per step
    - Execution checkpoints before UI rendering
 
+5) **Data Understanding Layer**
+   - Dataset profiling, schema inference, quality scoring
+   - Dataset identity hashing (for UI key determinism)
+
+6) **Data Science Execution Layer**
+   - Modular EDA, feature engineering, modeling, visualization
+   - Separation between computation and rendering
+
+7) **Reasoning & Explanation Layer**
+   - LLM‑based explanation with assumptions and confidence
+   - Decision rationale and actionable next steps
+
+8) **Memory & State Layer**
 4) **Data Understanding Layer**
    - Dataset profiling, schema inference, quality scoring
    - Dataset identity hashing (for UI key determinism)
@@ -97,6 +122,7 @@ UI Rendering
    - Long‑term project memory
    - Render history registry
 
+9) **Production & Safety Layer**
 8) **Production & Safety Layer**
    - Structured logging
    - Error classification and user‑safe messaging
@@ -104,6 +130,30 @@ UI Rendering
 
 ---
 
+## 3) LLM Trust & Intelligence Verification (Blocking)
+
+### 3.1 LLM Readiness Gate (No Execution Without Pass)
+- **Mandatory live validation** of provider and API key before any reasoning, planning, or execution.
+- **Fail‑closed**: if validation fails, the system must not proceed and must show explicit status.
+- **Expose state** in the UI and telemetry: Connected ✅ / Auth failed ❌ / Rate limited ⚠️ / Misconfigured ❌.
+
+### 3.2 Validation Workflow (Provider‑Specific)
+1. **Provider selection** (OpenAI/Anthropic/Azure/etc.). Validate required config fields for the selected provider.
+2. **Auth probe**: perform a minimal authenticated request (e.g., list models or a tiny completion) to verify credentials.
+3. **Deterministic inference check**: run a minimal prompt (e.g., `respond with token: OK`) and validate response integrity.
+4. **Latency & quota**: record response time and detect rate‑limit headers/errors.
+5. **Publish readiness**: cache the readiness status in session state and block downstream logic until ✅.
+
+### 3.3 UI Truthfulness Rules
+- Never display “connected” or “ready” unless steps 1–4 pass.
+- If the LLM is unavailable, the UI must explicitly say: “LLM unavailable — intelligence features paused.”
+- Any downstream intent or planning UI must be disabled unless readiness is ✅.
+
+---
+
+## 4) UI & Streamlit Failure Immunity Strategy (Mandatory)
+
+### 4.1 Deterministic Keying Strategy (Non‑Optional)
 ## 3) UI & Streamlit Failure Immunity Strategy (Mandatory)
 
 ### 3.1 Deterministic Keying Strategy (Non‑Optional)
@@ -119,6 +169,7 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
        f":{render_index}"
 ```
 
+### 4.2 UI Registry & Collision Detection
 ### 3.2 UI Registry & Collision Detection
 - Maintain a render registry in `st.session_state.render_registry`.
 - On each render request:
@@ -128,6 +179,7 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
   - Register the new key
 - If collision resolution fails, render a safe fallback (e.g., text summary) and log the error.
 
+### 4.3 Render Safety Boundaries
 ### 3.3 Render Safety Boundaries
 - **No UI rendering inside agent execution**; agents produce pure data structures only.
 - UI rendering should be performed in one deterministic pass at the UI layer.
@@ -135,6 +187,7 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
 
 ---
 
+## 5) Data Robustness by Design
 ## 4) Data Robustness by Design
 
 | Data Type | Detection Strategy | Decision Logic | Fallback Behavior | Failure Messaging |
@@ -151,6 +204,7 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
 
 ---
 
+## 6) Professional Data Scientist Behavior Guarantees
 ## 5) Professional Data Scientist Behavior Guarantees
 - **Clarification gate**: If intent confidence < threshold, ask clarifying questions before execution.
 - **Metric gating**: Choose metrics based on task type (classification vs regression).
@@ -160,6 +214,14 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
 
 ---
 
+## 7) Failure‑First System Design
+
+### 7.1 Failure Handling Matrix
+| Failure | Detection | Response | User Messaging | Observability |
+|---|---|---|---|---|
+| LLM auth failure | Invalid key / auth error | Block execution | "LLM auth failed; update API key" | Logged with error code |
+| LLM rate limit | Rate limit headers / status | Backoff + pause | "LLM rate‑limited; retry later" | Logged with rate info |
+| LLM inference failure | Empty/invalid response | Block planning | "LLM response invalid; cannot proceed" | Logged with response hash |
 ## 6) Failure‑First System Design
 
 ### 6.1 Failure Handling Matrix
@@ -173,6 +235,33 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
 
 ---
 
+## 8) Exhaustive Testing Framework (Zero Exceptions)
+
+### 8.1 LLM Testing (Mandatory)
+- Invalid API keys, expired keys, wrong provider selection.
+- Network failure, rate limits, token exhaustion, partial responses.
+- Deterministic response integrity checks (e.g., mismatched expected token).
+- Each test must confirm **blocking behavior** and **truthful UI status**.
+
+### 8.2 Interaction Testing
+- Queries when LLM is unavailable (must block planning/execution).
+- Mid‑session LLM disconnect (must pause and surface status).
+- User requests that require intelligence (must refuse if LLM not ready).
+
+### 8.3 Data Testing
+- Clean/dirty CSV, missing values, mixed dtypes, high cardinality, time series, imbalanced, JSON, text, empty/corrupted.
+- Each test validates detection, routing, fallback, and messaging.
+
+### 8.4 Intent Testing
+- Explicit tasks, ambiguous goals, contradictory goals, mid‑execution redirects.
+
+### 8.5 Pipeline Testing
+- Partial execution, failed model training, metric mismatch, leakage detection, evaluation misuse.
+
+### 8.6 UI / Frontend Testing
+- Re‑render loops, multiple charts of same type, dynamic chart generation, conditional UI blocks, session restarts.
+
+### 8.7 Failure Injection
 ## 7) Exhaustive Testing Framework (Zero Exceptions)
 
 ### 7.1 Data Testing
@@ -194,6 +283,13 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
 Each test defines: **Detection mechanism**, **Expected behavior**, **Recovery strategy**, **User‑visible messaging**.
 
 ---
+
+## 9) Gap‑Driven Refactor Plan
+
+### 9.1 Key Gaps
+0. **LLM trust failure (Critical)**
+   - Root cause: no real provider/auth validation; UI can claim success without live checks
+   - Fix: mandatory LLM readiness gate with deterministic auth + inference probes
 
 ## 8) Gap‑Driven Refactor Plan
 
@@ -218,6 +314,19 @@ Each test defines: **Detection mechanism**, **Expected behavior**, **Recovery st
    - Root cause: intent routing lacks confidence gating
    - Fix: enforce confidence thresholds and clarification prompts
 
+### 9.2 Refactor Strategy (Incremental)
+1. **Introduce LLM readiness gate** (provider validation, inference probe, fail‑closed UI)
+2. **Introduce UI render registry** in `app.py`
+3. **Separate render payloads from agent outputs**
+4. **Add dataset hash to session state**
+5. **Enforce key generation for every Streamlit element**
+6. **Add structured error taxonomy & logging**
+
+---
+
+## 10) Production Readiness Checklist
+- [ ] LLM readiness gate with live auth and inference checks
+- [ ] Truthful UI readiness indicators (no fake success)
 ### 8.2 Refactor Strategy (Incremental)
 1. **Introduce UI render registry** in `app.py`
 2. **Separate render payloads from agent outputs**
@@ -235,6 +344,24 @@ Each test defines: **Detection mechanism**, **Expected behavior**, **Recovery st
 - [ ] Dataset identity hashing
 - [ ] Clarification gating
 - [ ] Structured error taxonomy
+- [ ] Test suite covering LLM readiness, UI collisions, and failure injection
+
+---
+
+## 11) Migration Plan (Safe, Incremental)
+1. Add LLM readiness gate (auth + inference probe + UI status)
+2. Add render registry + deterministic key builder
+3. Introduce dataset hashing and attach to render keys
+4. Refactor agent outputs to pure data payloads
+5. Add orchestration checkpoints and failure taxonomy
+6. Add LLM readiness tests + UI collision tests + failure injection tests
+7. Integrate clarification gating and confidence thresholds
+
+---
+
+## 12) Deliverables Summary
+- Current architecture map and failure analysis
+- LLM trust & validation flow
 - [ ] Test suite covering UI collisions and failure injection
 
 ---

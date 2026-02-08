@@ -5,9 +5,11 @@ LLM Client - Provider-agnostic interface for OpenAI, Anthropic, and Ollama
 import json
 import logging
 import os
+import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,18 @@ class LLMClient(ABC):
     ) -> Dict[str, Any]:
         """Send messages and parse the response as JSON."""
         pass
+
+
+@dataclass
+class LLMValidationResult:
+    state: str
+    message: str
+    provider: str
+    model: str
+    latency_ms: Optional[float] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 class OpenAIClient(LLMClient):
@@ -282,7 +296,8 @@ def get_llm_client(
     provider: Optional[str] = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
-) -> LLMClient:
+    allow_fallback: bool = True,
+) -> Optional[LLMClient]:
     """Factory function to create the appropriate LLM client.
 
     Auto-detects provider from environment variables if not specified.
@@ -296,8 +311,11 @@ def get_llm_client(
         elif os.getenv("OLLAMA_MODEL"):
             provider = "ollama"
         else:
-            logger.info("No LLM API key found. Using rule-based fallback client.")
-            return FallbackClient()
+            if allow_fallback:
+                logger.info("No LLM API key found. Using rule-based fallback client.")
+                return FallbackClient()
+            logger.info("No LLM API key found. Returning None (LLM disabled).")
+            return None
 
     if provider == "openai":
         return OpenAIClient(api_key=api_key, model=model or "gpt-4o-mini")
@@ -306,5 +324,93 @@ def get_llm_client(
     elif provider == "ollama":
         return OllamaClient(model=model or os.getenv("OLLAMA_MODEL", "llama3.1"))
     else:
-        logger.warning(f"Unknown provider '{provider}', using fallback.")
-        return FallbackClient()
+        if allow_fallback:
+            logger.warning(f"Unknown provider '{provider}', using fallback.")
+            return FallbackClient()
+        logger.warning(f"Unknown provider '{provider}', returning None.")
+        return None
+
+
+async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResult:
+    """Validate that the LLM client can authenticate and return a deterministic response."""
+    if client is None:
+        return LLMValidationResult(
+            state="misconfigured",
+            message="No LLM client configured.",
+            provider="none",
+            model="none",
+        )
+
+    if isinstance(client, FallbackClient):
+        return LLMValidationResult(
+            state="misconfigured",
+            message="Fallback client is not permitted for intelligence features.",
+            provider="fallback",
+            model="n/a",
+        )
+
+    provider, model = _client_metadata(client)
+    api_key = getattr(client, "api_key", None)
+    if provider in {"openai", "anthropic"} and not api_key:
+        return LLMValidationResult(
+            state="misconfigured",
+            message="Missing API key for selected provider.",
+            provider=provider,
+            model=model,
+        )
+
+    start = time.monotonic()
+    try:
+        response = await client.chat(
+            messages=[{"role": "user", "content": "Respond with token: OK"}],
+            temperature=0.0,
+            max_tokens=5,
+        )
+        latency_ms = (time.monotonic() - start) * 1000
+        if "ok" not in (response or "").lower():
+            return LLMValidationResult(
+                state="invalid_response",
+                message="LLM responded but failed deterministic validation.",
+                provider=provider,
+                model=model,
+                latency_ms=latency_ms,
+            )
+        return LLMValidationResult(
+            state="connected",
+            message="LLM validated with deterministic probe.",
+            provider=provider,
+            model=model,
+            latency_ms=latency_ms,
+        )
+    except Exception as exc:
+        latency_ms = (time.monotonic() - start) * 1000
+        state, message = _classify_llm_error(exc)
+        return LLMValidationResult(
+            state=state,
+            message=message,
+            provider=provider,
+            model=model,
+            latency_ms=latency_ms,
+        )
+
+
+def _client_metadata(client: LLMClient) -> Tuple[str, str]:
+    if isinstance(client, OpenAIClient):
+        return "openai", client.model
+    if isinstance(client, AnthropicClient):
+        return "anthropic", client.model
+    if isinstance(client, OllamaClient):
+        return "ollama", client.model
+    return "unknown", "unknown"
+
+
+def _classify_llm_error(exc: Exception) -> Tuple[str, str]:
+    message = str(exc)
+    lowered = message.lower()
+    if "rate limit" in lowered or "429" in lowered:
+        return "rate_limited", "LLM rate limit reached."
+    if "unauthorized" in lowered or "invalid api key" in lowered or "authentication" in lowered:
+        return "auth_failed", "LLM authentication failed."
+    if "not found" in lowered or "model" in lowered:
+        return "misconfigured", "LLM model or endpoint misconfigured."
+    return "unavailable", "LLM provider unavailable or network error."

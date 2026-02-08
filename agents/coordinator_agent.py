@@ -198,18 +198,23 @@ class CoordinatorAgent(BaseAgent):
         dataset_summary = context.get("dataset_summary", "")
 
         if self.llm_client is None:
-            from llm.client import FallbackClient
-            self.llm_client = FallbackClient()
+            return {
+                "intent": "llm_unavailable",
+                "explanation": "LLM is not configured or validated. Please connect a valid provider.",
+                "raw_message": user_message,
+                "context": context,
+                "blocked": True,
+            }
 
-        # FallbackClient works on raw user messages, not formatted prompts
         from llm.client import FallbackClient
         if isinstance(self.llm_client, FallbackClient):
-            result = await self.llm_client.chat_json(
-                messages=[{"role": "user", "content": user_message}]
-            )
-            result["raw_message"] = user_message
-            result["context"] = context
-            return result
+            return {
+                "intent": "llm_unavailable",
+                "explanation": "Fallback LLM is disabled for intelligence features.",
+                "raw_message": user_message,
+                "context": context,
+                "blocked": True,
+            }
 
         from llm.prompts import PromptTemplates
 
@@ -246,7 +251,7 @@ class CoordinatorAgent(BaseAgent):
         """Have the LLM interpret agent results into human-readable insights."""
         from llm.client import FallbackClient
         if self.llm_client is None or isinstance(self.llm_client, FallbackClient):
-            return self._fallback_interpret(agent_name, action, result_data)
+            return "LLM unavailable. Result interpretation is paused until a validated LLM is connected."
 
         from llm.prompts import PromptTemplates
 
