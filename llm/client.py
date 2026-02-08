@@ -8,7 +8,6 @@ import os
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
-from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -49,12 +48,10 @@ class LLMClient(ABC):
 
 @dataclass
 class LLMValidationResult:
-    status: str
     state: str
     message: str
     provider: str
     model: str
-    timestamp: str
     latency_ms: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -338,54 +335,28 @@ async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResul
     """Validate that the LLM client can authenticate and return a deterministic response."""
     if client is None:
         return LLMValidationResult(
-            status="MISCONFIGURED",
             state="misconfigured",
             message="No LLM client configured.",
             provider="none",
             model="none",
-            timestamp=datetime.utcnow().isoformat(),
         )
 
     if isinstance(client, FallbackClient):
         return LLMValidationResult(
-            status="MISCONFIGURED",
             state="misconfigured",
             message="Fallback client is not permitted for intelligence features.",
             provider="fallback",
             model="n/a",
-            timestamp=datetime.utcnow().isoformat(),
         )
 
     provider, model = _client_metadata(client)
     api_key = getattr(client, "api_key", None)
     if provider in {"openai", "anthropic"} and not api_key:
         return LLMValidationResult(
-            status="MISCONFIGURED",
             state="misconfigured",
             message="Missing API key for selected provider.",
             provider=provider,
             model=model,
-            timestamp=datetime.utcnow().isoformat(),
-        )
-
-    if provider == "openai" and api_key and not api_key.startswith("sk-"):
-        return LLMValidationResult(
-            status="AUTH_FAILED",
-            state="auth_failed",
-            message="OpenAI API key format is invalid.",
-            provider=provider,
-            model=model,
-            timestamp=datetime.utcnow().isoformat(),
-        )
-
-    if provider == "anthropic" and api_key and not api_key.startswith("sk-ant-"):
-        return LLMValidationResult(
-            status="AUTH_FAILED",
-            state="auth_failed",
-            message="Anthropic API key format is invalid.",
-            provider=provider,
-            model=model,
-            timestamp=datetime.utcnow().isoformat(),
         )
 
     start = time.monotonic()
@@ -396,35 +367,29 @@ async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResul
             max_tokens=5,
         )
         latency_ms = (time.monotonic() - start) * 1000
-        if not (response or "").strip():
+        if "ok" not in (response or "").lower():
             return LLMValidationResult(
-                status="MISCONFIGURED",
                 state="invalid_response",
-                message="LLM responded with an empty payload.",
+                message="LLM responded but failed deterministic validation.",
                 provider=provider,
                 model=model,
-                timestamp=datetime.utcnow().isoformat(),
                 latency_ms=latency_ms,
             )
         return LLMValidationResult(
-            status="SUCCESS",
             state="connected",
             message="LLM validated with deterministic probe.",
             provider=provider,
             model=model,
-            timestamp=datetime.utcnow().isoformat(),
             latency_ms=latency_ms,
         )
     except Exception as exc:
         latency_ms = (time.monotonic() - start) * 1000
         state, message = _classify_llm_error(exc)
         return LLMValidationResult(
-            status=_state_to_status(state),
             state=state,
             message=message,
             provider=provider,
             model=model,
-            timestamp=datetime.utcnow().isoformat(),
             latency_ms=latency_ms,
         )
 
@@ -449,15 +414,3 @@ def _classify_llm_error(exc: Exception) -> Tuple[str, str]:
     if "not found" in lowered or "model" in lowered:
         return "misconfigured", "LLM model or endpoint misconfigured."
     return "unavailable", "LLM provider unavailable or network error."
-
-
-def _state_to_status(state: str) -> str:
-    mapping = {
-        "connected": "SUCCESS",
-        "auth_failed": "AUTH_FAILED",
-        "rate_limited": "RATE_LIMITED",
-        "misconfigured": "MISCONFIGURED",
-        "invalid_response": "MISCONFIGURED",
-        "unavailable": "MISCONFIGURED",
-    }
-    return mapping.get(state, "MISCONFIGURED")
