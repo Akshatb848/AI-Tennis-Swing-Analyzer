@@ -365,16 +365,16 @@ def render_sidebar():
             '<h2 class="main-header">🔬 DS Agent</h2>', unsafe_allow_html=True
         )
 
-        # LLM provider config
-        with st.expander("🤖 LLM Configuration", expanded=False):
-            provider = st.selectbox(
-                "Provider",
-                ["auto", "openai", "anthropic", "ollama", "fallback"],
-                help="auto = detect from env vars",
+        # LLM provider config (local open-source via Ollama)
+        with st.expander("🤖 Local LLM (Ollama)", expanded=False):
+            st.markdown("This app uses a local open-source model via Ollama. No API key required.")
+            model = st.text_input("Model", value="llama3.1", help="Ollama model name")
+            base_url = st.text_input(
+                "Ollama Base URL",
+                value="http://localhost:11434",
+                help="URL where the Ollama server is running",
             )
-            api_key = st.text_input("API Key (optional)", type="password")
-            model = st.text_input("Model (optional)", placeholder="e.g. gpt-4o-mini")
-            if st.button("Apply LLM Config"):
+            if st.button("Connect Local LLM"):
                 from llm.client import get_llm_client as _get
                 p = None if provider == "auto" else provider
                 client = _get(

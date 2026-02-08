@@ -322,7 +322,10 @@ def get_llm_client(
     elif provider == "anthropic":
         return AnthropicClient(api_key=api_key, model=model or "claude-3-5-sonnet-20240620")
     elif provider == "ollama":
-        return OllamaClient(model=model or os.getenv("OLLAMA_MODEL", "llama3.1"))
+        return OllamaClient(
+            model=model or os.getenv("OLLAMA_MODEL", "llama3.1"),
+            base_url=base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        )
     else:
         if allow_fallback:
             logger.warning(f"Unknown provider '{provider}', using fallback.")

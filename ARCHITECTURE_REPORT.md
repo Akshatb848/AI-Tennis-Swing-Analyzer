@@ -2,7 +2,6 @@
 
 ## 0) Scope & Non‑Negotiables
 This report audits the current repository and designs a failure‑proof, production‑grade Intelligent Data Scientist Agent. It focuses on correctness, robustness, explicit failure handling, LLM trust validation, and UI determinism (especially Streamlit element ID safety).
-This report audits the current repository and designs a failure‑proof, production‑grade Intelligent Data Scientist Agent. It focuses on correctness, robustness, explicit failure handling, and UI determinism (especially Streamlit element ID safety).
 
 ---
 
@@ -81,13 +80,11 @@ UI Rendering
    - State exposure: Connected ✅ / Auth failed ❌ / Rate limited ⚠️ / Misconfigured ❌
 
 3) **Intent & Task Intelligence Layer**
-2) **Intent & Task Intelligence Layer**
    - LLM intent classification with confidence and ambiguity detection
    - Task decomposition and sequencing
    - Clarification questions only when needed
 
 4) **Orchestration & Control Layer**
-3) **Orchestration & Control Layer**
    - State machine with explicit step boundaries
    - Retry/rollback logic per step
    - Execution checkpoints before UI rendering
@@ -105,19 +102,6 @@ UI Rendering
    - Decision rationale and actionable next steps
 
 8) **Memory & State Layer**
-4) **Data Understanding Layer**
-   - Dataset profiling, schema inference, quality scoring
-   - Dataset identity hashing (for UI key determinism)
-
-5) **Data Science Execution Layer**
-   - Modular EDA, feature engineering, modeling, visualization
-   - Separation between computation and rendering
-
-6) **Reasoning & Explanation Layer**
-   - LLM‑based explanation with assumptions and confidence
-   - Decision rationale and actionable next steps
-
-7) **Memory & State Layer**
    - Short‑term session state
    - Long‑term project memory
    - Render history registry
@@ -169,7 +153,6 @@ key = f"{dataset_hash}:{workflow_step_id}:{chart_type}:{chart_signature}"\
 ```
 
 ### 4.2 UI Registry & Collision Detection
-### 3.2 UI Registry & Collision Detection
 - Maintain a render registry in `st.session_state.render_registry`.
 - On each render request:
   - Generate key
