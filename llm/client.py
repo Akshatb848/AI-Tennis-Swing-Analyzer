@@ -46,6 +46,30 @@ class LLMClient(ABC):
         pass
 
 
+class ValidationStatus:
+    """Normalized validation status constants (uppercase for external API)."""
+    SUCCESS = "SUCCESS"
+    AUTH_FAILED = "AUTH_FAILED"
+    RATE_LIMITED = "RATE_LIMITED"
+    MISCONFIGURED = "MISCONFIGURED"
+    UNAVAILABLE = "UNAVAILABLE"
+    INVALID_RESPONSE = "INVALID_RESPONSE"
+
+    # Map internal state strings to normalized status
+    _STATE_MAP = {
+        "connected": "SUCCESS",
+        "auth_failed": "AUTH_FAILED",
+        "rate_limited": "RATE_LIMITED",
+        "misconfigured": "MISCONFIGURED",
+        "unavailable": "UNAVAILABLE",
+        "invalid_response": "INVALID_RESPONSE",
+    }
+
+    @classmethod
+    def from_state(cls, state: str) -> str:
+        return cls._STATE_MAP.get(state, "MISCONFIGURED")
+
+
 @dataclass
 class LLMValidationResult:
     state: str
@@ -54,8 +78,21 @@ class LLMValidationResult:
     model: str
     latency_ms: Optional[float] = None
 
+    @property
+    def status(self) -> str:
+        """Normalized uppercase status for external consumers."""
+        return ValidationStatus.from_state(self.state)
+
+    @property
+    def is_ready(self) -> bool:
+        """True only when the LLM has been validated with a real probe."""
+        return self.state == "connected"
+
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["status"] = self.status
+        d["is_ready"] = self.is_ready
+        return d
 
 
 class OpenAIClient(LLMClient):
@@ -334,12 +371,60 @@ def get_llm_client(
         return None
 
 
+def _validate_api_key_format(provider: str, api_key: str) -> Optional[str]:
+    """Validate API key format for known providers.
+
+    Returns an error message if the key format is invalid, or None if acceptable.
+    """
+    if not api_key or not api_key.strip():
+        return f"API key for {provider} is empty."
+
+    key = api_key.strip()
+
+    if provider == "openai":
+        # OpenAI keys start with "sk-" and are at least 20 characters
+        if not key.startswith("sk-"):
+            return (
+                "Invalid OpenAI API key format: must start with 'sk-'. "
+                "Get a valid key at https://platform.openai.com/api-keys"
+            )
+        if len(key) < 20:
+            return (
+                "Invalid OpenAI API key format: key is too short. "
+                "A valid key is at least 20 characters."
+            )
+
+    elif provider == "anthropic":
+        # Anthropic keys start with "sk-ant-"
+        if not key.startswith("sk-ant-"):
+            return (
+                "Invalid Anthropic API key format: must start with 'sk-ant-'. "
+                "Get a valid key at https://console.anthropic.com/settings/keys"
+            )
+        if len(key) < 20:
+            return (
+                "Invalid Anthropic API key format: key is too short. "
+                "A valid key is at least 20 characters."
+            )
+
+    return None
+
+
 async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResult:
-    """Validate that the LLM client can authenticate and return a deterministic response."""
+    """Validate that the LLM client can authenticate and return a deterministic response.
+
+    Validation steps (all must pass):
+    1. Client must exist and not be a FallbackClient
+    2. API key must be present (for cloud providers)
+    3. API key format must be valid for the provider
+    4. A real inference probe must succeed with the expected response
+
+    This function never fakes success. If any step fails, the result reflects the failure.
+    """
     if client is None:
         return LLMValidationResult(
             state="misconfigured",
-            message="No LLM client configured.",
+            message="No LLM client configured. Please provide a valid API key.",
             provider="none",
             model="none",
         )
@@ -347,21 +432,38 @@ async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResul
     if isinstance(client, FallbackClient):
         return LLMValidationResult(
             state="misconfigured",
-            message="Fallback client is not permitted for intelligence features.",
+            message=(
+                "Fallback (rule-based) client cannot provide real intelligence. "
+                "Please configure a valid LLM provider and API key."
+            ),
             provider="fallback",
             model="n/a",
         )
 
     provider, model = _client_metadata(client)
     api_key = getattr(client, "api_key", None)
+
+    # Step 1: API key presence check (cloud providers)
     if provider in {"openai", "anthropic"} and not api_key:
         return LLMValidationResult(
             state="misconfigured",
-            message="Missing API key for selected provider.",
+            message=f"Missing API key for {provider}. Please provide a valid API key.",
             provider=provider,
             model=model,
         )
 
+    # Step 2: API key format validation (cloud providers)
+    if provider in {"openai", "anthropic"} and api_key:
+        format_error = _validate_api_key_format(provider, api_key)
+        if format_error:
+            return LLMValidationResult(
+                state="auth_failed",
+                message=format_error,
+                provider=provider,
+                model=model,
+            )
+
+    # Step 3: Real inference probe — deterministic, token-light
     start = time.monotonic()
     try:
         response = await client.chat(
@@ -370,14 +472,19 @@ async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResul
             max_tokens=5,
         )
         latency_ms = (time.monotonic() - start) * 1000
-        if "ok" not in (response or "").lower():
+
+        if response is None or "ok" not in response.lower():
             return LLMValidationResult(
                 state="invalid_response",
-                message="LLM responded but failed deterministic validation.",
+                message=(
+                    "LLM responded but did not return the expected validation token. "
+                    "The model may be misconfigured or unavailable."
+                ),
                 provider=provider,
                 model=model,
                 latency_ms=latency_ms,
             )
+
         return LLMValidationResult(
             state="connected",
             message="LLM validated with deterministic probe.",
@@ -385,6 +492,7 @@ async def validate_llm_client(client: Optional[LLMClient]) -> LLMValidationResul
             model=model,
             latency_ms=latency_ms,
         )
+
     except Exception as exc:
         latency_ms = (time.monotonic() - start) * 1000
         state, message = _classify_llm_error(exc)
@@ -408,12 +516,78 @@ def _client_metadata(client: LLMClient) -> Tuple[str, str]:
 
 
 def _classify_llm_error(exc: Exception) -> Tuple[str, str]:
+    """Classify an LLM exception into a specific, actionable error category.
+
+    Returns (state, user_facing_message) with explicit recovery guidance.
+    """
     message = str(exc)
     lowered = message.lower()
-    if "rate limit" in lowered or "429" in lowered:
-        return "rate_limited", "LLM rate limit reached."
-    if "unauthorized" in lowered or "invalid api key" in lowered or "authentication" in lowered:
-        return "auth_failed", "LLM authentication failed."
-    if "not found" in lowered or "model" in lowered:
-        return "misconfigured", "LLM model or endpoint misconfigured."
-    return "unavailable", "LLM provider unavailable or network error."
+    exc_type = type(exc).__name__
+
+    # Authentication failures
+    if any(s in lowered for s in [
+        "unauthorized", "invalid api key", "invalid x-api-key",
+        "authentication", "api key", "permission denied", "403", "401",
+        "incorrect api key",
+    ]):
+        return (
+            "auth_failed",
+            f"Authentication failed: the API key was rejected by the provider. "
+            f"Please verify your API key is correct and active. (Detail: {exc_type})"
+        )
+
+    # Rate limiting
+    if any(s in lowered for s in ["rate limit", "rate_limit", "429", "too many requests"]):
+        return (
+            "rate_limited",
+            "Rate limit reached. The provider is throttling requests. "
+            "Wait a moment and try again, or check your plan's rate limits."
+        )
+
+    # Token/quota exhaustion
+    if any(s in lowered for s in [
+        "quota", "billing", "insufficient_quota", "exceeded",
+        "budget", "payment", "credit",
+    ]):
+        return (
+            "auth_failed",
+            "Token quota exceeded or billing issue. "
+            "Check your provider account for available credits or quota limits."
+        )
+
+    # Model not found / misconfigured
+    if any(s in lowered for s in [
+        "model not found", "does not exist", "invalid model",
+        "model_not_found", "no such model",
+    ]):
+        return (
+            "misconfigured",
+            f"Model not found or unavailable. "
+            f"Verify the model name is correct and accessible with your API key. (Detail: {message[:100]})"
+        )
+
+    # Network / connection errors
+    if any(s in lowered for s in [
+        "connection", "timeout", "timed out", "dns", "resolve",
+        "unreachable", "refused", "network", "ssl", "eof",
+    ]) or exc_type in ("ConnectionError", "TimeoutError", "OSError", "ClientConnectorError"):
+        return (
+            "unavailable",
+            f"Network error: could not reach the LLM provider. "
+            f"Check your internet connection and the provider's service status. (Detail: {exc_type})"
+        )
+
+    # Server errors
+    if any(s in lowered for s in ["500", "502", "503", "504", "server error", "internal error"]):
+        return (
+            "unavailable",
+            "The LLM provider returned a server error. "
+            "This is likely a temporary issue — try again in a few moments."
+        )
+
+    # Catch-all with detail
+    return (
+        "unavailable",
+        f"LLM provider error: {exc_type}: {message[:200]}. "
+        f"Check your configuration and try again."
+    )

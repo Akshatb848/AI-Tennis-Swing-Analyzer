@@ -1,19 +1,70 @@
-"""Tests for the LLM-powered CoordinatorAgent."""
+"""Tests for the LLM-powered CoordinatorAgent.
+
+Uses a MockLLMClient (not FallbackClient) so the coordinator treats it
+as a real LLM.  FallbackClient is correctly blocked by the fail-closed
+architecture — those paths are tested in test_llm_execution_guard.py.
+"""
 
 import pytest
 import asyncio
+import json
+from typing import Any, Dict, List, Optional
 
 from agents.coordinator_agent import CoordinatorAgent, Workflow, WorkflowStep
 from agents.data_cleaner_agent import DataCleanerAgent
 from agents.eda_agent import EDAAgent
 from agents.model_trainer_agent import ModelTrainerAgent
-from llm.client import FallbackClient
+from llm.client import LLMClient, FallbackClient, _extract_json
+
+
+class MockLLMClient(LLMClient):
+    """A mock LLM client that uses rule-based logic but is NOT a FallbackClient.
+
+    This allows coordinator tests to exercise the real LLM code path
+    (intent analysis, interpretation) without hitting a real API.
+    The coordinator's fail-closed guard only blocks None and FallbackClient,
+    so this mock passes those checks.
+
+    For chat_json (intent analysis), it delegates to FallbackClient's logic.
+    For chat (interpretation/conversation), it raises so the coordinator
+    falls back to its template-based _fallback_interpret.
+    """
+
+    def __init__(self):
+        self._fallback = FallbackClient()
+
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
+    ) -> str:
+        # Raise to trigger coordinator's _fallback_interpret for interpretation,
+        # and _fallback_conversational_reply for conversations
+        raise RuntimeError("Mock LLM: no real inference available")
+
+    async def chat_json(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 2048,
+    ) -> Dict[str, Any]:
+        # The coordinator sends a formatted prompt via PromptTemplates.intent_analysis.
+        # Extract the original user message from 'User message: "..."' and run
+        # the fallback's rule-based intent on the raw message instead.
+        import re
+        last_content = messages[-1]["content"] if messages else ""
+        m = re.search(r'User message:\s*"(.+?)"', last_content)
+        raw_msg = m.group(1) if m else last_content
+        return self._fallback._rule_based_intent(raw_msg)
 
 
 @pytest.fixture
 def coordinator():
-    """Coordinator with fallback client and a few agents registered."""
-    c = CoordinatorAgent(llm_client=FallbackClient())
+    """Coordinator with a mock LLM client and a few agents registered."""
+    c = CoordinatorAgent(llm_client=MockLLMClient())
     c.register_agent(DataCleanerAgent())
     c.register_agent(EDAAgent())
     c.register_agent(ModelTrainerAgent())

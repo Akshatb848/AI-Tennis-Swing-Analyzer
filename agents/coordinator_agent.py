@@ -233,13 +233,18 @@ class CoordinatorAgent(BaseAgent):
             return result
         except Exception as e:
             logger.error(f"LLM intent analysis failed: {e}")
-            fallback = FallbackClient()
-            result = await fallback.chat_json(
-                messages=[{"role": "user", "content": user_message}]
-            )
-            result["raw_message"] = user_message
-            result["context"] = context
-            return result
+            # Fail closed: report the error explicitly instead of silently
+            # falling back to a rule-based client that fakes intelligence.
+            return {
+                "intent": "llm_unavailable",
+                "explanation": (
+                    f"LLM call failed: {type(e).__name__}: {str(e)[:200]}. "
+                    "Please check your LLM configuration and try again."
+                ),
+                "raw_message": user_message,
+                "context": context,
+                "blocked": True,
+            }
 
     # ------------------------------------------------------------------
     # Result interpretation (LLM-powered)

@@ -6,6 +6,8 @@ import asyncio
 
 from llm.client import (
     FallbackClient,
+    OpenAIClient,
+    AnthropicClient,
     _extract_json,
     get_llm_client,
 )

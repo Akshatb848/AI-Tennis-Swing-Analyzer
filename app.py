@@ -365,35 +365,63 @@ def render_sidebar():
             '<h2 class="main-header">🔬 DS Agent</h2>', unsafe_allow_html=True
         )
 
-        # LLM provider config (local open-source via Ollama)
-        with st.expander("🤖 Local LLM (Ollama)", expanded=False):
-            st.markdown("This app uses a local open-source model via Ollama. No API key required.")
-            model = st.text_input("Model", value="llama3.1", help="Ollama model name")
-            base_url = st.text_input(
-                "Ollama Base URL",
-                value="http://localhost:11434",
-                help="URL where the Ollama server is running",
+        # LLM provider configuration
+        with st.expander("🤖 LLM Configuration", expanded=False):
+            provider = st.selectbox(
+                "Provider",
+                options=["openai", "anthropic", "ollama"],
+                index=0,
+                help="Select your LLM provider",
             )
-            if st.button("Connect Local LLM"):
-                from llm.client import get_llm_client as _get
-                p = None if provider == "auto" else provider
-                client = _get(
-                    provider=p,
-                    api_key=api_key or None,
-                    model=model or None,
-                    allow_fallback=False,
+
+            if provider in ("openai", "anthropic"):
+                api_key = st.text_input(
+                    "API Key",
+                    type="password",
+                    help=f"Enter your {provider.title()} API key",
                 )
-                if provider == "fallback":
-                    client = FallbackClient()
+                model = st.text_input(
+                    "Model",
+                    value="gpt-4o-mini" if provider == "openai" else "claude-3-5-sonnet-20240620",
+                    help="Model name",
+                )
+                base_url = None
+            else:
+                api_key = None
+                model = st.text_input("Model", value="llama3.1", help="Ollama model name")
+                base_url = st.text_input(
+                    "Ollama Base URL",
+                    value="http://localhost:11434",
+                    help="URL where the Ollama server is running",
+                )
+
+            if st.button("Validate & Connect"):
+                from llm.client import get_llm_client as _get, OllamaClient
+
+                if provider == "ollama":
+                    client = OllamaClient(
+                        model=model or "llama3.1",
+                        base_url=base_url or "http://localhost:11434",
+                    )
+                else:
+                    client = _get(
+                        provider=provider,
+                        api_key=api_key or None,
+                        model=model or None,
+                        allow_fallback=False,
+                    )
+
                 validation = run_async(validate_llm_client(client))
                 st.session_state.llm_status = validation.to_dict()
                 if validation.state == "connected":
                     st.session_state.coordinator.llm_client = client
                     st.success(f"LLM validated: **{validation.provider}** / **{validation.model}**")
                 elif validation.state == "rate_limited":
+                    # Rate-limited means the key is valid but throttled — allow use
                     st.session_state.coordinator.llm_client = client
                     st.warning(validation.message)
                 else:
+                    # All other states: reject and block
                     st.session_state.coordinator.llm_client = None
                     st.error(validation.message)
 
@@ -483,20 +511,24 @@ def _render_llm_status_panel():
     status = st.session_state.get("llm_status", {"state": "unverified", "message": ""})
     state = status.get("state", "unverified")
     message = status.get("message", "")
-    provider = status.get("provider")
-    model = status.get("model")
+    prov = status.get("provider")
+    mdl = status.get("model")
     detail = message
-    if provider and model:
-        detail = f"{detail} (Provider: {provider}, Model: {model})"
+    if prov and mdl and prov not in ("none", "fallback"):
+        detail = f"{detail} (Provider: {prov}, Model: {mdl})"
 
     if state == "connected":
-        st.success(f"Connected ✅ {detail}")
+        st.success(f"Connected -- {detail}")
     elif state == "rate_limited":
-        st.warning(f"Rate limited ⚠️ {detail}")
+        st.warning(f"Rate limited -- {detail}")
     elif state == "unverified":
-        st.info(f"Not validated ℹ️ {detail}")
+        st.info(f"Not validated -- {detail}")
+    elif state == "auth_failed":
+        st.error(f"Authentication failed -- {detail}")
+    elif state == "misconfigured":
+        st.error(f"Not configured -- {detail}")
     else:
-        st.error(f"Not connected ❌ {detail}")
+        st.error(f"Not connected -- {detail}")
 
 
 def _sanitize_dtypes(df: pd.DataFrame) -> pd.DataFrame:
@@ -858,12 +890,20 @@ def _render_professional_dashboard(sections):
 # ---------- agent dispatch ----------
 
 async def handle_user_message(user_input: str):
-    """Process a user message through the coordinator agent."""
+    """Process a user message through the coordinator agent.
+
+    Fail-closed: no LLM-dependent work is performed unless the LLM
+    has been validated with a real inference probe.
+    """
     llm_status = st.session_state.get("llm_status", {})
     if llm_status.get("state") != "connected":
+        state_label = llm_status.get("state", "unverified")
+        detail = llm_status.get("message", "")
         return (
-            "LLM is not validated yet. Please configure a valid provider/API key in the sidebar. "
-            f"Status: {llm_status.get('state', 'unverified')}."
+            f"**LLM is not connected.** Please configure a valid provider and API key "
+            f"in the sidebar.\n\n"
+            f"**Status**: {state_label}\n\n"
+            f"**Detail**: {detail}"
         )
     coordinator: CoordinatorAgent = st.session_state.coordinator
     coordinator.add_to_memory("user", user_input)
@@ -878,6 +918,13 @@ async def handle_user_message(user_input: str):
     # Analyse intent
     intent_result = await coordinator.analyze_user_intent(user_input, context)
     intent = intent_result.get("intent", "general")
+
+    # Fail-closed: if the LLM call itself failed, report it explicitly
+    if intent_result.get("blocked"):
+        return (
+            f"**LLM error**: {intent_result.get('explanation', 'Unknown error')}.\n\n"
+            "Please check your LLM configuration in the sidebar."
+        )
 
     # Route based on intent
     if intent == "help":

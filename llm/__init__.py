@@ -8,9 +8,9 @@ from .client import (
     get_llm_client,
     validate_llm_client,
     LLMValidationResult,
+    ValidationStatus,
     FallbackClient,
 )
-from .client import LLMClient, LLMProvider, get_llm_client, validate_llm_client, LLMValidationResult
 from .prompts import PromptTemplates
 
 __all__ = [
@@ -19,6 +19,7 @@ __all__ = [
     "get_llm_client",
     "validate_llm_client",
     "LLMValidationResult",
+    "ValidationStatus",
     "FallbackClient",
     "PromptTemplates",
 ]
