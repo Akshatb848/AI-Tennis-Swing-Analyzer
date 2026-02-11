@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant — Education Intelligence Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="chat-page">
+
+    <!-- Top Status Bar -->
+    <div id="status-bar" class="status-bar">
+        <div class="status-bar-inner">
+            <span class="status-item" id="status-llm">
+                <span class="status-dot grey"></span> LLM: Checking...
+            </span>
+            <span class="status-item" id="status-vdb">
+                <span class="status-dot grey"></span> Vector DB: Checking...
+            </span>
+            <span class="status-item" id="status-api">
+                <span class="status-dot grey"></span> API: Checking...
+            </span>
+            <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">&#x26F6;</button>
+        </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="top-nav">
+        <a href="index.html" class="nav-brand">
+            <span class="ashoka-small">&#x2638;</span>
+            Education Intelligence
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="chat.html" class="active">AI Assistant</a>
+        </div>
+    </nav>
+
+    <!-- Chat Container -->
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>AI Education Assistant</h2>
+            <div class="chat-header-actions">
+                <label class="toggle-label">
+                    <input type="checkbox" id="show-sources" checked>
+                    Show Sources
+                </label>
+                <button class="btn btn-small btn-outline" onclick="clearChat()">Clear Session</button>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message ai-message">
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                    <p>Namaste! I am the Education Intelligence Assistant for the Ministry of Education.</p>
+                    <p>You can ask me about education statistics, policy comparisons, state-level data, or any education-related query.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Script Panel -->
+        <div class="demo-panel" id="demo-panel">
+            <p class="demo-label">Quick Queries:</p>
+            <div class="demo-chips">
+                <button class="demo-chip" onclick="sendDemo(this)">National literacy rate trends</button>
+                <button class="demo-chip" onclick="sendDemo(this)">Compare Kerala vs Bihar education</button>
+                <button class="demo-chip" onclick="sendDemo(this)">GER in higher education 2025</button>
+                <button class="demo-chip" onclick="sendDemo(this)">NEP 2020 implementation status</button>
+                <button class="demo-chip" onclick="sendDemo(this)">Teacher-student ratio by state</button>
+            </div>
+        </div>
+
+        <!-- Input -->
+        <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+                <textarea
+                    id="chat-input"
+                    placeholder="Ask about education data, policies, or statistics..."
+                    rows="1"
+                    maxlength="2000"
+                    onkeydown="handleChatKeydown(event)"
+                    oninput="autoGrow(this)"
+                ></textarea>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                    <span class="send-icon">&#10148;</span>
+                </button>
+            </div>
+            <p class="input-hint">Press Enter to send &middot; Shift+Enter for new line</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        checkSystemHealth();
+    </script>
+</body>
+</html>

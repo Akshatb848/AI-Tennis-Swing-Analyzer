@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Education Intelligence</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+    <!-- Top Status Bar -->
+    <div id="status-bar" class="status-bar">
+        <div class="status-bar-inner">
+            <span class="status-item" id="status-llm">
+                <span class="status-dot grey"></span> LLM: Checking...
+            </span>
+            <span class="status-item" id="status-vdb">
+                <span class="status-dot grey"></span> Vector DB: Checking...
+            </span>
+            <span class="status-item" id="status-api">
+                <span class="status-dot grey"></span> API: Checking...
+            </span>
+            <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">&#x26F6;</button>
+        </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="top-nav">
+        <a href="index.html" class="nav-brand">
+            <span class="ashoka-small">&#x2638;</span>
+            Education Intelligence
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html" class="active">Dashboard</a>
+            <a href="chat.html">AI Assistant</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+
+        <!-- Dashboard Header Row -->
+        <div class="dash-header-row">
+            <h2>Education Analytics Dashboard</h2>
+            <div class="dash-controls">
+                <label for="month-selector">Period:</label>
+                <select id="month-selector" onchange="onMonthChange()">
+                    <option value="">Loading...</option>
+                </select>
+                <span class="health-badge" id="health-badge">Checking...</span>
+            </div>
+        </div>
+
+        <!-- Search Module -->
+        <section class="dash-section">
+            <h3>Semantic Search</h3>
+            <div class="search-bar">
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search education data, policies, metrics..."
+                    maxlength="500"
+                    oninput="debouncedSearch()"
+                >
+                <div class="search-spinner hidden" id="search-spinner"></div>
+            </div>
+            <div id="search-results" class="search-results"></div>
+        </section>
+
+        <!-- Comparison Module -->
+        <section class="dash-section">
+            <h3>Comparison Engine</h3>
+            <div class="compare-form">
+                <div class="compare-inputs">
+                    <input type="text" id="compare-a" placeholder="Entity A (e.g. Kerala)" maxlength="100">
+                    <span class="compare-vs">vs</span>
+                    <input type="text" id="compare-b" placeholder="Entity B (e.g. Bihar)" maxlength="100">
+                </div>
+                <input type="text" id="compare-metric" placeholder="Metric (optional, e.g. literacy rate)" maxlength="200">
+                <button class="btn btn-primary" onclick="runComparison()">Compare</button>
+            </div>
+            <div id="compare-results" class="compare-results"></div>
+        </section>
+
+        <!-- Insights Panel (placeholder) -->
+        <section class="dash-section">
+            <h3>Key Indicators</h3>
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-value">97.2%</div>
+                    <div class="kpi-label">Primary Enrolment (GER)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">28.4%</div>
+                    <div class="kpi-label">Higher Education GER</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">26:1</div>
+                    <div class="kpi-label">Pupil-Teacher Ratio</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-value">74.04%</div>
+                    <div class="kpi-label">National Literacy Rate</div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer class="moe-footer">
+        <p>&copy; 2026 Ministry of Education, Government of India. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        checkSystemHealth();
+        loadMonths();
+    </script>
+</body>
+</html>
