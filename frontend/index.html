@@ -34,7 +34,7 @@
         <div class="header-text">
             <p class="header-ministry">Ministry of Education</p>
             <h1 class="header-title">Education Intelligence Dashboard</h1>
-            <p class="header-subtitle">Government of India &middot; Technology Partner: Deloitte</p>
+            <p class="header-subtitle">Government of India &middot; Rashtriya Vidya Samiksha Kendra (RVSK), CIET-NCERT</p>
         </div>
     </header>
 
@@ -55,20 +55,20 @@
         <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">1.5M+</div>
-                <div class="stat-label">Schools Covered</div>
+                <div class="stat-number">15.67 Cr</div>
+                <div class="stat-label">APAAR IDs Generated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">37+</div>
+                <div class="stat-label">Operational VSKs</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number">36</div>
                 <div class="stat-label">States &amp; UTs</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">250M+</div>
-                <div class="stat-label">Students Tracked</div>
-            </div>
-            <div class="stat-card">
                 <div class="stat-number">AI</div>
-                <div class="stat-label">Real-Time Analysis</div>
+                <div class="stat-label">Data-Verified Answers</div>
             </div>
         </div>
     </main>
@@ -97,10 +97,26 @@
         </div>
     </section>
 
+    <!-- Conference QR Access -->
+    <section class="qr-section">
+        <div class="qr-content">
+            <h2>Conference Access</h2>
+            <p>Scan the QR code to access the Education Intelligence Dashboard on your device</p>
+            <div class="qr-placeholder" id="qr-code">
+                <div class="qr-box">
+                    <div class="qr-label">Scan to Access Dashboard</div>
+                    <canvas id="qr-canvas" width="200" height="200"></canvas>
+                    <div class="qr-url" id="qr-url"></div>
+                </div>
+            </div>
+            <p class="qr-hint">Point your phone camera at the QR code above</p>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer class="moe-footer">
         <p>&copy; 2026 Ministry of Education, Government of India. All rights reserved.</p>
-        <p class="footer-tech">Technology Partner: Deloitte &middot; Powered by AI Multi-Agent System</p>
+        <p class="footer-tech">RVSK, CIET-NCERT &middot; Powered by AI Multi-Agent System</p>
     </footer>
 
     <script src="script.js"></script>

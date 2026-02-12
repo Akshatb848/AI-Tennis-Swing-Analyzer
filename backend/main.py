@@ -1,7 +1,7 @@
 """
 FastAPI Backend — Education Intelligence Dashboard
 Ministry of Education, Government of India
-Technology Partner: Deloitte
+Rashtriya Vidya Samiksha Kendra (RVSK), CIET-NCERT
 
 Exposes REST endpoints for chat, search, compare, health, newsletter data,
 stats aggregation, LLM status, and admin operations.

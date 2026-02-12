@@ -21,7 +21,7 @@ logger = logging.getLogger("moe_chat_handler")
 _INTENT_PATTERNS = {
     "apaar": re.compile(r"\b(apaar|id generation|ids generated)\b", re.I),
     "dashboard": re.compile(r"\b(dashboard|nipun|safal|nas|pm.?shri|ncert|attendance dashboard|assessment dashboard)\b", re.I),
-    "vsk": re.compile(r"\b(vsk|vidya samiksha|samiksha kendra|rvsk)\b", re.I),
+    "vsk": re.compile(r"\b(vsks?|vidya samiksha|samiksha kendra|rvsk)\b", re.I),
     "state_query": re.compile(r"\b(kerala|bihar|west bengal|madhya pradesh|chhattisgarh|manipur|meghalaya|uttarakhand|goa|assam|himachal|chandigarh|delhi|andaman|ladakh|jharkhand|lakshadweep|telangana|sikkim|gujarat|tamil nadu|j&k)\b", re.I),
     "policy": re.compile(r"\b(nep|diksha|nishtha|swayam|samagra|naac|cuet|ncf|bharatnet|udise|lgd|ncte|nios|cbse|parakh|psscive)\b", re.I),
     "summary": re.compile(r"\b(summary|overview|highlight|theme|what happened|newsletter|month)\b", re.I),

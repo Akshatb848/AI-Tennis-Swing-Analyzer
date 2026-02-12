@@ -48,6 +48,10 @@ async def client():
 
         _state["chat_handler"] = ChatHandler(rag_system=rag)
 
+    # Reset rate limiter for tests
+    from backend.main import _rate_store
+    _rate_store.clear()
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c

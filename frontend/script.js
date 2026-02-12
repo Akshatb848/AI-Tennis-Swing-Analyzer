@@ -577,7 +577,76 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById("chat-month-selector")) {
         loadChatMonths();
     }
+    if (document.getElementById("qr-canvas")) {
+        generateQRDisplay();
+    }
 });
+
+/* ================================================================
+   QR CODE GENERATOR (conference access)
+   Simple canvas-based QR-like display with URL
+   ================================================================ */
+
+function generateQRDisplay() {
+    const canvas = document.getElementById("qr-canvas");
+    const urlEl = document.getElementById("qr-url");
+    if (!canvas || !urlEl) return;
+
+    const url = window.location.origin;
+    urlEl.textContent = url;
+
+    const ctx = canvas.getContext("2d");
+    const size = 200;
+    const cellSize = 8;
+    const grid = Math.floor(size / cellSize);
+
+    // Generate a deterministic pattern from URL
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.fillStyle = "#0B1D51";
+
+    // Fixed position markers (QR-style corners)
+    drawFinderPattern(ctx, 0, 0, cellSize);
+    drawFinderPattern(ctx, (grid - 7) * cellSize, 0, cellSize);
+    drawFinderPattern(ctx, 0, (grid - 7) * cellSize, cellSize);
+
+    // Data pattern from URL hash
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+        hash = ((hash << 5) - hash + url.charCodeAt(i)) | 0;
+    }
+
+    for (let y = 0; y < grid; y++) {
+        for (let x = 0; x < grid; x++) {
+            if (isInFinderZone(x, y, grid)) continue;
+            hash = ((hash * 1103515245 + 12345) & 0x7fffffff);
+            if (hash % 3 !== 0) {
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize - 1, cellSize - 1);
+            }
+        }
+    }
+}
+
+function drawFinderPattern(ctx, x, y, cell) {
+    ctx.fillStyle = "#0B1D51";
+    ctx.fillRect(x, y, 7 * cell, 7 * cell);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(x + cell, y + cell, 5 * cell, 5 * cell);
+    ctx.fillStyle = "#0B1D51";
+    ctx.fillRect(x + 2 * cell, y + 2 * cell, 3 * cell, 3 * cell);
+}
+
+function isInFinderZone(x, y, grid) {
+    if (x < 8 && y < 8) return true;
+    if (x >= grid - 8 && y < 8) return true;
+    if (x < 8 && y >= grid - 8) return true;
+    return false;
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
 
 async function loadChatMonths() {
     const sel = document.getElementById("chat-month-selector");
