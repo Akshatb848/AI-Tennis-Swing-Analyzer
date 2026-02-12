@@ -1,11 +1,16 @@
 /* ================================================================
    Education Intelligence Dashboard — Frontend Logic
    Ministry of Education, Government of India
+   v2.0 — Structured responses, calendar-aware, conference-ready
    ================================================================ */
 
 const API_BASE = window.location.origin;
-const FETCH_TIMEOUT = 15000; // 15s
+const FETCH_TIMEOUT = 15000;
 const MAX_RETRIES = 2;
+
+/* ---- State ---- */
+let currentSessionId = null;
+let currentMonth = null;
 
 /* ---- Helpers ---- */
 
@@ -98,9 +103,9 @@ async function checkSystemHealth() {
     }
 
     if (svc.vector_db && svc.vector_db.connected) {
-        setStatusDot(vdbEl, "green", "Vector DB: Ready");
+        setStatusDot(vdbEl, "green", "RAG: " + (svc.vector_db.detail || "Ready"));
     } else {
-        setStatusDot(vdbEl, "red", "Vector DB: Offline");
+        setStatusDot(vdbEl, "red", "RAG: Offline");
     }
 
     setStatusDot(apiEl, "green", "API: Healthy");
@@ -113,8 +118,6 @@ async function checkSystemHealth() {
 
 function setStatusDot(el, colour, text) {
     if (!el) return;
-    const dot = el.querySelector(".status-dot");
-    if (dot) { dot.className = "status-dot " + colour; }
     el.innerHTML = "";
     const dotEl = document.createElement("span");
     dotEl.className = "status-dot " + colour;
@@ -122,11 +125,10 @@ function setStatusDot(el, colour, text) {
     el.appendChild(document.createTextNode(" " + text));
 }
 
-// Refresh health every 30s
 setInterval(checkSystemHealth, 30000);
 
 /* ================================================================
-   CHAT
+   CHAT — Structured Responses
    ================================================================ */
 
 let chatBusy = false;
@@ -167,9 +169,17 @@ async function sendMessage() {
     chatBusy = true;
     document.getElementById("send-btn").disabled = true;
 
+    const monthSel = document.getElementById("chat-month-selector");
+    const selectedMonth = monthSel ? monthSel.value : currentMonth;
+
     const data = await apiFetch("/api/chat", {
         method: "POST",
-        body: JSON.stringify({ query: query, current_month: null, include_visualization: false }),
+        body: JSON.stringify({
+            query: query,
+            current_month: selectedMonth || null,
+            include_visualization: true,
+            session_id: currentSessionId,
+        }),
     });
 
     removeTyping();
@@ -181,7 +191,102 @@ async function sendMessage() {
         return;
     }
 
-    appendMessage("ai", data.answer, data.sources);
+    if (data.session_id) {
+        currentSessionId = data.session_id;
+    }
+
+    appendStructuredMessage(data);
+}
+
+function appendStructuredMessage(data) {
+    const container = document.getElementById("chat-messages");
+    if (!container) return;
+
+    const msg = document.createElement("div");
+    msg.className = "message ai-message";
+
+    const avatar = document.createElement("div");
+    avatar.className = "message-avatar";
+    avatar.textContent = "AI";
+
+    const content = document.createElement("div");
+    content.className = "message-content structured-response";
+
+    // Intent badge + confidence
+    const meta = document.createElement("div");
+    meta.className = "response-meta";
+    if (data.intent && data.intent !== "general" && data.intent !== "error") {
+        const badge = document.createElement("span");
+        badge.className = "intent-badge intent-" + data.intent;
+        badge.textContent = data.intent.replace("_", " ");
+        meta.appendChild(badge);
+    }
+    if (data.confidence) {
+        const conf = document.createElement("span");
+        conf.className = "confidence-indicator confidence-" + data.confidence;
+        conf.textContent = data.confidence + " confidence";
+        meta.appendChild(conf);
+    }
+    if (data.data_backed) {
+        const dbBadge = document.createElement("span");
+        dbBadge.className = "data-backed-badge";
+        dbBadge.textContent = "data-verified";
+        meta.appendChild(dbBadge);
+    }
+    if (meta.children.length > 0) {
+        content.appendChild(meta);
+    }
+
+    // Summary
+    const summary = document.createElement("div");
+    summary.className = "response-summary";
+    summary.innerHTML = formatMarkdown(sanitise(data.summary || data.answer || ""));
+    content.appendChild(summary);
+
+    // Key points
+    if (data.key_points && data.key_points.length > 0) {
+        const kpDiv = document.createElement("div");
+        kpDiv.className = "key-points";
+        const kpHeader = document.createElement("div");
+        kpHeader.className = "key-points-header";
+        kpHeader.textContent = "Key Data Points";
+        kpDiv.appendChild(kpHeader);
+        const ul = document.createElement("ul");
+        data.key_points.forEach(kp => {
+            const li = document.createElement("li");
+            li.innerHTML = formatMarkdown(sanitise(kp));
+            ul.appendChild(li);
+        });
+        kpDiv.appendChild(ul);
+        content.appendChild(kpDiv);
+    }
+
+    // Sources
+    const showSources = document.getElementById("show-sources");
+    if (data.sources && data.sources.length > 0 && showSources && showSources.checked) {
+        const srcDiv = document.createElement("div");
+        srcDiv.className = "message-sources";
+        srcDiv.innerHTML = "<strong>Sources:</strong> " +
+            data.sources.map(s => {
+                const label = s.month ? `${s.month} (${s.section || s.type})` : (s.type || "data");
+                return `<span class="source-tag">${sanitise(label)}</span>`;
+            }).join(" ");
+        content.appendChild(srcDiv);
+    }
+
+    // Visualization hint
+    if (data.visualization && data.visualization.type) {
+        const vizHint = document.createElement("div");
+        vizHint.className = "viz-hint";
+        vizHint.textContent = "Chart available: " + data.visualization.type.replace("_", " ");
+        vizHint.onclick = () => showVisualization(data.visualization);
+        content.appendChild(vizHint);
+    }
+
+    msg.appendChild(avatar);
+    msg.appendChild(content);
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
 }
 
 function appendMessage(role, text, sources) {
@@ -199,19 +304,16 @@ function appendMessage(role, text, sources) {
     content.className = "message-content";
     content.innerHTML = formatMarkdown(sanitise(text));
 
-    // Sources
-    const showSources = document.getElementById("show-sources");
-    if (sources && sources.length > 0 && showSources && showSources.checked) {
-        const srcDiv = document.createElement("div");
-        srcDiv.className = "message-sources";
-        srcDiv.textContent = "Sources: " + sources.join(", ");
-        content.appendChild(srcDiv);
-    }
-
     msg.appendChild(avatar);
     msg.appendChild(content);
     container.appendChild(msg);
     container.scrollTop = container.scrollHeight;
+}
+
+function showVisualization(vizData) {
+    // Placeholder — dispatch event for dashboard chart highlighting
+    console.log("Visualization hint:", vizData);
+    showToast("Chart data available — view on Dashboard");
 }
 
 function showTyping() {
@@ -245,11 +347,11 @@ function clearChat() {
     const container = document.getElementById("chat-messages");
     if (!container) return;
     container.innerHTML = "";
+    currentSessionId = null;
     appendMessage("ai", "Session cleared. How can I help you?");
 }
 
 function formatMarkdown(text) {
-    // Minimal markdown: bold, bullet points, line breaks
     return text
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/^- (.+)/gm, "&bull; $1")
@@ -257,7 +359,7 @@ function formatMarkdown(text) {
 }
 
 /* ================================================================
-   DASHBOARD — Month Selector
+   DASHBOARD — Month Selector (calendar-driven)
    ================================================================ */
 
 async function loadMonths() {
@@ -278,12 +380,61 @@ async function loadMonths() {
         if (m === data.default) opt.selected = true;
         sel.appendChild(opt);
     });
+
+    currentMonth = data.default || data.months[data.months.length - 1];
+    onMonthChange();
+
+    // Also populate chat month selector if present
+    const chatSel = document.getElementById("chat-month-selector");
+    if (chatSel) {
+        chatSel.innerHTML = '<option value="">Auto-detect</option>';
+        data.months.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = m;
+            chatSel.appendChild(opt);
+        });
+    }
 }
 
-function onMonthChange() {
-    // Could trigger data refresh for the selected period
+async function onMonthChange() {
     const sel = document.getElementById("month-selector");
-    if (sel) console.log("Period changed:", sel.value);
+    if (!sel) return;
+    currentMonth = sel.value;
+    await loadMonthData(currentMonth);
+}
+
+async function loadMonthData(month) {
+    if (!month) return;
+    const encoded = month.replace(/ /g, "-");
+    const data = await apiFetch(`/api/newsletter/${encoded}`);
+    if (!data) return;
+
+    // Update KPI cards
+    const kpis = data.kpis || {};
+    updateKPI("kpi-ger-primary", kpis.ger_primary, "%");
+    updateKPI("kpi-ger-he", kpis.ger_higher_education, "%");
+    updateKPI("kpi-ptr", kpis.pupil_teacher_ratio_primary, ":1");
+    updateKPI("kpi-literacy", kpis.literacy_rate, "%");
+
+    // Update theme
+    const themeEl = document.getElementById("month-theme");
+    if (themeEl) themeEl.textContent = data.theme || "";
+
+    // Update highlights
+    const hlEl = document.getElementById("month-highlights");
+    if (hlEl && data.highlights) {
+        hlEl.innerHTML = data.highlights.map(h =>
+            `<li>${sanitise(h)}</li>`
+        ).join("");
+    }
+}
+
+function updateKPI(elementId, value, suffix) {
+    const el = document.getElementById(elementId);
+    if (!el || value === undefined) return;
+    const valEl = el.querySelector(".kpi-value");
+    if (valEl) valEl.textContent = value + (suffix || "");
 }
 
 /* ================================================================
@@ -324,7 +475,7 @@ async function executeSearch() {
         <div class="search-result-item">
             <div class="search-result-title">${sanitise(r.title)}</div>
             <div class="search-result-snippet">${sanitise(r.snippet)}</div>
-            <div class="search-result-score">Relevance: ${(r.relevance * 100).toFixed(0)}%</div>
+            <div class="search-result-score">Relevance: ${(r.relevance * 100).toFixed(0)}%${r.month ? ' | ' + sanitise(r.month) : ''}</div>
         </div>
     `).join("");
 }
@@ -333,9 +484,28 @@ async function executeSearch() {
    DASHBOARD — Comparison
    ================================================================ */
 
+async function loadCompareStates() {
+    const selA = document.getElementById("compare-a-sel");
+    const selB = document.getElementById("compare-b-sel");
+    if (!selA || !selB) return;
+
+    const data = await apiFetch("/api/compare/states");
+    if (!data || !data.states) return;
+
+    [selA, selB].forEach(sel => {
+        sel.innerHTML = '<option value="">Select state...</option>';
+        data.states.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            sel.appendChild(opt);
+        });
+    });
+}
+
 async function runComparison() {
-    const a = document.getElementById("compare-a");
-    const b = document.getElementById("compare-b");
+    const a = document.getElementById("compare-a-sel") || document.getElementById("compare-a");
+    const b = document.getElementById("compare-b-sel") || document.getElementById("compare-b");
     const metric = document.getElementById("compare-metric");
     const resultsEl = document.getElementById("compare-results");
     if (!a || !b || !resultsEl) return;
@@ -343,11 +513,11 @@ async function runComparison() {
     const entityA = a.value.trim();
     const entityB = b.value.trim();
     if (!entityA || !entityB) {
-        showToast("Please enter both entities to compare.");
+        showToast("Please select both states to compare.");
         return;
     }
 
-    resultsEl.textContent = "Generating comparison...";
+    resultsEl.innerHTML = '<div class="loading-text">Generating comparison...</div>';
 
     const data = await apiFetch("/api/compare", {
         method: "POST",
@@ -362,5 +532,63 @@ async function runComparison() {
         return;
     }
 
-    resultsEl.textContent = data.comparison || "No comparison data available.";
+    if (typeof data.comparison === "object") {
+        resultsEl.innerHTML = renderComparisonTable(data.comparison, data.month);
+    } else {
+        resultsEl.textContent = data.comparison || "No comparison data available.";
+    }
+}
+
+function renderComparisonTable(states, month) {
+    const stateNames = Object.keys(states);
+    if (stateNames.length === 0) return "<p>No data available for these states.</p>";
+
+    const allMetrics = new Set();
+    stateNames.forEach(s => Object.keys(states[s]).forEach(k => allMetrics.add(k)));
+
+    let html = `<div class="compare-month-label">Data for: ${sanitise(month || "Latest")}</div>`;
+    html += '<table class="compare-table"><thead><tr><th>Metric</th>';
+    stateNames.forEach(s => { html += `<th>${sanitise(s)}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    allMetrics.forEach(metric => {
+        html += `<tr><td>${sanitise(metric.replace(/_/g, " "))}</td>`;
+        stateNames.forEach(s => {
+            const val = states[s][metric];
+            html += `<td>${val !== undefined ? val : "—"}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    return html;
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+
+document.addEventListener("DOMContentLoaded", () => {
+    checkSystemHealth();
+    if (document.getElementById("month-selector")) {
+        loadMonths();
+        loadCompareStates();
+    }
+    if (document.getElementById("chat-month-selector")) {
+        loadChatMonths();
+    }
+});
+
+async function loadChatMonths() {
+    const sel = document.getElementById("chat-month-selector");
+    if (!sel) return;
+    const data = await apiFetch("/api/newsletter/months");
+    if (!data || !data.months) return;
+    sel.innerHTML = '<option value="">Auto-detect</option>';
+    data.months.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.textContent = m;
+        sel.appendChild(opt);
+    });
 }

@@ -462,6 +462,190 @@ a:hover { text-decoration: underline; }
     z-index: 2000;
 }
 
+/* ================================================================
+   STRUCTURED RESPONSE STYLES
+   ================================================================ */
+
+/* Response metadata badges */
+.response-meta {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.intent-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--moe-blue);
+    color: var(--white);
+}
+.intent-badge.intent-apaar { background: #7C3AED; }
+.intent-badge.intent-vsk { background: #0891B2; }
+.intent-badge.intent-dashboard { background: #059669; }
+.intent-badge.intent-policy { background: #B45309; }
+.intent-badge.intent-summary { background: var(--moe-blue-light); }
+.intent-badge.intent-meeting { background: #6366F1; }
+.intent-badge.intent-correspondence { background: #9333EA; }
+.intent-badge.intent-state_query { background: #DC2626; }
+.intent-badge.intent-help { background: var(--grey-500); }
+
+.confidence-indicator {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: 500;
+}
+.confidence-high { background: #DCFCE7; color: #15803D; }
+.confidence-medium { background: #FEF9C3; color: #A16207; }
+.confidence-low { background: #FEE2E2; color: #DC2626; }
+
+.data-backed-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+/* Key points */
+.key-points {
+    margin-top: 0.6rem;
+    padding: 0.6rem;
+    background: var(--off-white);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--saffron);
+}
+.key-points-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--grey-500);
+    margin-bottom: 0.4rem;
+}
+.key-points ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.key-points li {
+    font-size: 0.82rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--grey-100);
+    line-height: 1.5;
+}
+.key-points li:last-child { border-bottom: none; }
+
+/* Source tags */
+.source-tag {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    background: var(--grey-100);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin: 0.1rem;
+}
+
+/* Visualization hint */
+.viz-hint {
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    border-radius: var(--radius);
+    font-size: 0.75rem;
+    color: #15803D;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+.viz-hint:hover { background: #DCFCE7; }
+
+/* Month theme bar */
+.month-theme-bar {
+    padding: 0.8rem 1rem;
+    background: linear-gradient(90deg, var(--moe-blue) 0%, var(--moe-blue-mid) 100%);
+    color: var(--white);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+/* Highlights list */
+.highlights-list {
+    list-style: none; padding: 0;
+}
+.highlights-list li {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--grey-100);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    padding-left: 1.2rem;
+    position: relative;
+}
+.highlights-list li::before {
+    content: "\25B6";
+    position: absolute;
+    left: 0;
+    color: var(--saffron);
+    font-size: 0.6rem;
+    top: 0.8rem;
+}
+.highlights-list li:last-child { border-bottom: none; }
+
+/* Compare table */
+.compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+.compare-table th {
+    background: var(--moe-blue);
+    color: var(--white);
+    padding: 0.6rem;
+    text-align: left;
+}
+.compare-table td {
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--grey-100);
+}
+.compare-table tr:hover td { background: var(--off-white); }
+.compare-month-label {
+    font-size: 0.78rem;
+    color: var(--grey-500);
+    margin-bottom: 0.5rem;
+}
+
+/* Compare select dropdowns */
+.compare-inputs select {
+    flex: 1;
+    padding: 0.6rem 0.8rem;
+    border: 2px solid var(--grey-200);
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 0.85rem;
+}
+.compare-inputs select:focus { outline: none; border-color: var(--moe-blue); }
+
+/* Chat month selector */
+.month-select-inline {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--grey-200);
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 0.78rem;
+}
+
+/* Loading text */
+.loading-text { color: var(--grey-500); font-size: 0.85rem; font-style: italic; }
+
 /* --- Responsive --- */
 @media (max-width: 1024px) {
     .stats-grid, .features-section, .kpi-grid { grid-template-columns: repeat(2, 1fr); }

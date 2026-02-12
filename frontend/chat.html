@@ -16,7 +16,7 @@
                 <span class="status-dot grey"></span> LLM: Checking...
             </span>
             <span class="status-item" id="status-vdb">
-                <span class="status-dot grey"></span> Vector DB: Checking...
+                <span class="status-dot grey"></span> RAG: Checking...
             </span>
             <span class="status-item" id="status-api">
                 <span class="status-dot grey"></span> API: Checking...
@@ -42,6 +42,9 @@
         <div class="chat-header">
             <h2>AI Education Assistant</h2>
             <div class="chat-header-actions">
+                <select id="chat-month-selector" class="month-select-inline" title="Data context">
+                    <option value="">Auto-detect</option>
+                </select>
                 <label class="toggle-label">
                     <input type="checkbox" id="show-sources" checked>
                     Show Sources
@@ -55,20 +58,21 @@
                 <div class="message-avatar">AI</div>
                 <div class="message-content">
                     <p>Namaste! I am the Education Intelligence Assistant for the Ministry of Education.</p>
-                    <p>You can ask me about education statistics, policy comparisons, state-level data, or any education-related query.</p>
+                    <p>I provide <strong>verified, data-backed</strong> answers from official newsletter data (April 2025 — January 2026). Ask me about education statistics, state comparisons, policy updates, or KPI trends.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Demo Script Panel -->
+        <!-- Suggested Queries -->
         <div class="demo-panel" id="demo-panel">
-            <p class="demo-label">Quick Queries:</p>
+            <p class="demo-label">Conference Prompts:</p>
             <div class="demo-chips">
-                <button class="demo-chip" onclick="sendDemo(this)">National literacy rate trends</button>
-                <button class="demo-chip" onclick="sendDemo(this)">Compare Kerala vs Bihar education</button>
-                <button class="demo-chip" onclick="sendDemo(this)">GER in higher education 2025</button>
+                <button class="demo-chip" onclick="sendDemo(this)">Summary for January 2026</button>
+                <button class="demo-chip" onclick="sendDemo(this)">Compare Kerala vs Bihar</button>
+                <button class="demo-chip" onclick="sendDemo(this)">GER higher education trend</button>
                 <button class="demo-chip" onclick="sendDemo(this)">NEP 2020 implementation status</button>
-                <button class="demo-chip" onclick="sendDemo(this)">Teacher-student ratio by state</button>
+                <button class="demo-chip" onclick="sendDemo(this)">Literacy rate trend</button>
+                <button class="demo-chip" onclick="sendDemo(this)">Delhi education data</button>
             </div>
         </div>
 
@@ -87,13 +91,10 @@
                     <span class="send-icon">&#10148;</span>
                 </button>
             </div>
-            <p class="input-hint">Press Enter to send &middot; Shift+Enter for new line</p>
+            <p class="input-hint">Press Enter to send &middot; Shift+Enter for new line &middot; All answers are data-verified</p>
         </div>
     </div>
 
     <script src="script.js"></script>
-    <script>
-        checkSystemHealth();
-    </script>
 </body>
 </html>

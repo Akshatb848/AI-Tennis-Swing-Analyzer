@@ -1,0 +1,339 @@
+{
+  "metadata": {
+    "source": "Rashtriya Vidya Samiksha Kendra (RVSK), CIET-NCERT, Ministry of Education, Government of India",
+    "description": "Monthly progress updates — April 2025 to January 2026",
+    "last_updated": "2026-02-01",
+    "version": "2.0"
+  },
+  "months": {
+    "April 2025": {
+      "period": "April 2025",
+      "theme": "Attendance Integration & State/UT VSK Coordination",
+      "highlights": [
+        "Student and teacher attendance integration is completed for the UT of Ladakh.",
+        "Meeting with State/UT VSKs for the integration of all management types of schools."
+      ],
+      "apaar_ids_total": null,
+      "sections": {
+        "state_ut_engagements": [
+          "Student and teacher attendance integration is completed for the UT of Ladakh.",
+          "Meeting with State/UT VSKs for the integration of all management types of schools."
+        ]
+      }
+    },
+    "May 2025": {
+      "period": "May 2025",
+      "theme": "Assessment Integration & Dashboard Revamp",
+      "highlights": [
+        "Meeting with representatives of 69 boards on 1st May 2025 for the integration of assessment datasets.",
+        "For the integration of KPIs related administration, support was extended to the State Bihar (7th May) and UT of Chandigarh through in-person workshops.",
+        "Revamp of PM SHRI, NISHTHA dashboards with updated datasets received from respective bureau.",
+        "APAAR ID Generation is currently on hold owing to grade progression activity."
+      ],
+      "apaar_ids_total": null,
+      "sections": {
+        "assessment_integration": [
+          "Meeting with representatives of 69 boards on 1st May 2025 for the integration of assessment datasets.",
+          "For the integration of KPIs related administration, support was extended to the State Bihar (7th May) and UT of Chandigarh through in-person workshops."
+        ],
+        "dashboard_work": [
+          "Revamp of PM SHRI, NISHTHA dashboards with updated datasets received from respective bureau."
+        ],
+        "apaar": [
+          "APAAR ID Generation is currently on hold owing to grade progression activity."
+        ]
+      }
+    },
+    "June 2025": {
+      "period": "June 2025",
+      "theme": "KPI Development & RVSK Portal Testing",
+      "highlights": [
+        "Development of extensive KPIs for assessment integration.",
+        "Launch of NIOS Vidya Samiksha Kendra.",
+        "Development and internal testing of the RVSK portal for state/UT VSK coordination and facilitating streamlined, secure exchange of information."
+      ],
+      "apaar_ids_total": null,
+      "sections": {
+        "kpi_development": [
+          "Development of extensive KPIs for assessment integration."
+        ],
+        "vsk_launches": [
+          "Launch of NIOS Vidya Samiksha Kendra."
+        ],
+        "technical": [
+          "Development and internal testing of the RVSK portal for state/UT VSK coordination and facilitating streamlined, secure exchange of information."
+        ]
+      }
+    },
+    "July 2025": {
+      "period": "July 2025",
+      "theme": "VSK Expansion & RVSK Portal UAT",
+      "highlights": [
+        "West Bengal became fully operational, bringing the total number of operational Vidya Samiksha Kendras (VSKs) in the country to 37.",
+        "Madhya Pradesh integrated with RVSK and commenced sharing teacher attendance data.",
+        "User Acceptance Testing (UAT) of the RVSK Portal was successfully completed with Assam, Chandigarh, Madhya Pradesh, and Delhi. The portal is now ready for rollout to other States/UTs.",
+        "Key Performance Indicators (KPIs) for RVSK prepared and submitted for approval.",
+        "13,93,07,517 APAAR IDs generated in total till 31st July 2025."
+      ],
+      "apaar_ids_total": 139307517,
+      "apaar_ids_date": "31 July 2025",
+      "sections": {
+        "state_ut_engagements": [
+          "West Bengal became fully operational, bringing the total number of operational Vidya Samiksha Kendras (VSKs) in the country to 37.",
+          "Madhya Pradesh integrated with RVSK and commenced sharing teacher attendance data."
+        ],
+        "technical": [
+          "User Acceptance Testing (UAT) of the RVSK Portal was successfully completed with Assam, Chandigarh, Madhya Pradesh, and Delhi. The portal is now ready for rollout to other States/UTs, and user access will be shared during the upcoming CPD Workshop.",
+          "Letter issued on 26th June 2025 for integration of all school management systems with respective State/UT VSKs.",
+          "Key Performance Indicators (KPIs) for RVSK prepared and submitted for approval."
+        ],
+        "apaar": [
+          "13,93,07,517 APAAR IDs generated in total till 31st July 2025."
+        ]
+      }
+    },
+    "August 2025": {
+      "period": "August 2025",
+      "theme": "Capacity Building Workshop 2.0 & State Integration",
+      "highlights": [
+        "Capacity Building Workshop 2.0 Conducted at RVSK, CIET-NCERT from 4th-29th August 2025 in five batches, covering all 36 States/UTs/Autonomous Bodies (ABs).",
+        "Each State/UT/AB deputed four participants comprising: Nodal Officer-VSK, MIS In-Charge/Coordinator (Samagra Shiksha), Representative from State Education Board (Secondary Education), Headmaster/Headmistress/Teacher from a Government school. A total of 165 participants attended.",
+        "Chhattisgarh integrated with RVSK, bringing the total to 33 States/UTs operational.",
+        "NCTE VSK made ready for launch, with all hardware, software, and PMU arrangements completed.",
+        "Development of dashboards for NIPUN, SAFAL, NAS, and Educational Boards initiated.",
+        "Testing and development of an AI Chatbot for Attendance undertaken.",
+        "PSSCIVE Vocational Education Document prepared and shared for annual review.",
+        "13,99,10,791 APAAR IDs generated in total till 31st August 2025."
+      ],
+      "apaar_ids_total": 139910791,
+      "apaar_ids_date": "31 August 2025",
+      "sections": {
+        "capacity_building": [
+          "Capacity Building Workshop 2.0 Conducted at RVSK, CIET-NCERT from 4th-29th August 2025 in five batches, covering all 36 States/UTs/Autonomous Bodies (ABs).",
+          "Each State/UT/AB deputed four participants: Nodal Officer-VSK, MIS In-Charge/Coordinator (Samagra Shiksha), Representative from State Education Board (Secondary Education), Headmaster/Headmistress/Teacher from a Government school.",
+          "A total of 165 participants attended the workshop."
+        ],
+        "state_integration": [
+          "Chhattisgarh integrated with RVSK, bringing the total to 33 States/UTs operational.",
+          "NCTE VSK made ready for launch, with all hardware, software, and PMU arrangements completed."
+        ],
+        "dashboard_work": [
+          "Development of dashboards for NIPUN, SAFAL, NAS, and Educational Boards initiated.",
+          "Testing and development of an AI Chatbot for Attendance undertaken."
+        ],
+        "other": [
+          "PSSCIVE Vocational Education Document prepared and shared for annual review."
+        ],
+        "apaar": [
+          "13,99,10,791 APAAR IDs generated in total till 31st August 2025."
+        ]
+      }
+    },
+    "September 2025": {
+      "period": "September 2025",
+      "theme": "KPI Booklet Circulation & VSK Site Visits",
+      "highlights": [
+        "A detailed booklet outlining the formulated KPIs along with their corresponding metrics, insights, and data parameters/fields has been developed and circulated to all Examination Boards across India for feedback and review.",
+        "Conducted a visit to the CBSE Vidya Samiksha Kendra (VSK) to discuss and review the process of data integration with the Rashtriya Vidya Samiksha Kendra (RVSK).",
+        "Conducted a visit to the NIOS Vidya Samiksha Kendra (VSK) to assess and facilitate data integration with RVSK.",
+        "Prepared and submitted a comprehensive report to the Ministry of Education (MoE) highlighting the technical and administrative challenges faced by State/UT VSKs across India.",
+        "Compiled and submitted a State/UT/District-wise attendance data analysis report to the Ministry of Education (MoE) for review and further action.",
+        "Held a meeting with the Deputy Director General (Statistics), Ministry of Education, to deliberate on strengthening data-driven decision-making and enhancing governance in school education.",
+        "14,27,88,686 APAAR IDs generated in total till 30th September 2025."
+      ],
+      "apaar_ids_total": 142788686,
+      "apaar_ids_date": "30 September 2025",
+      "sections": {
+        "kpi_development": [
+          "A detailed booklet outlining the formulated KPIs along with their corresponding metrics, insights, and data parameters/fields has been developed and circulated to all Examination Boards across India for feedback and review."
+        ],
+        "vsk_visits": [
+          "Conducted a visit to the CBSE Vidya Samiksha Kendra (VSK) to discuss and review the process of data integration with the Rashtriya Vidya Samiksha Kendra (RVSK).",
+          "Conducted a visit to the NIOS Vidya Samiksha Kendra (VSK) to assess and facilitate data integration with RVSK."
+        ],
+        "reports": [
+          "Prepared and submitted a comprehensive report to the Ministry of Education (MoE) highlighting the technical and administrative challenges faced by State/UT VSKs across India.",
+          "Compiled and submitted a State/UT/District-wise attendance data analysis report to the Ministry of Education (MoE) for review and further action."
+        ],
+        "meetings": [
+          "Held a meeting with the Deputy Director General (Statistics), Ministry of Education, to deliberate on strengthening data-driven decision-making and enhancing governance in school education."
+        ],
+        "apaar": [
+          "14,27,88,686 APAAR IDs generated in total till 30th September 2025."
+        ]
+      }
+    },
+    "October 2025": {
+      "period": "October 2025",
+      "theme": "Bihar VSK Launch & UDISE+ Data Quality",
+      "highlights": [
+        "The Bihar Vidya Samiksha Kendra has been operationalized and is ready for launch.",
+        "Letters have been issued to 10 States/UTs where name mismatches were identified in the UDISE+ database with reference to the LGD (Local Government Directory), Ministry of Panchayati Raj.",
+        "A discussion meeting with all 36 states/UTs conducted regarding the enhancement of RVSK portal.",
+        "Detailed discussion with Examination Boards for data sharing, KPI analysis and integration with RVSK.",
+        "A new Attendance Dashboard has been developed and currently under UAT (User Acceptance Testing) phase.",
+        "Redevelopment of the NAS 2017 and 2021 Dashboards based on inputs received from the PARAKH Team, NCERT.",
+        "Compiled and shared data request from all States/UTs on the data request from UDISE+ database for digital initiatives like DIKSHA, PM eVidya, VSKs etc.",
+        "14,49,00,028 APAAR IDs generated in total till 31st October 2025."
+      ],
+      "apaar_ids_total": 144900028,
+      "apaar_ids_date": "31 October 2025",
+      "sections": {
+        "state_integration": [
+          "The Bihar Vidya Samiksha Kendra has been operationalized and is ready for launch."
+        ],
+        "data_quality": [
+          "Letters have been issued to 10 States/UTs where name mismatches were identified in the UDISE+ database with reference to the LGD (Local Government Directory), Ministry of Panchayati Raj. The States/UTs have been requested to carry out the necessary corrections in UDISE+ to align with the LGD nomenclature, ensuring uniformity and consistency across all national education datasets and reports."
+        ],
+        "meetings": [
+          "A discussion meeting with all 36 states/UTs conducted regarding the enhancement of RVSK portal.",
+          "Detailed discussion with Examination Boards for data sharing, KPI analysis and integration with RVSK."
+        ],
+        "dashboard_work": [
+          "A new Attendance Dashboard has been developed and currently under UAT (User Acceptance Testing) phase.",
+          "Redevelopment of the NAS 2017 and 2021 Dashboards based on inputs received from the PARAKH Team, NCERT."
+        ],
+        "data_requests": [
+          "Compiled and shared data request from all States/UTs on the data request from UDISE+ database for digital initiatives like DIKSHA, PM eVidya, VSKs etc."
+        ],
+        "apaar": [
+          "14,49,00,028 APAAR IDs generated in total till 31st October 2025."
+        ]
+      }
+    },
+    "November 2025": {
+      "period": "November 2025",
+      "theme": "Assessment Data Pilot & Knowledge Sharing",
+      "highlights": [
+        "Letters have been issued to 18 States/UTs where name mismatches were identified in the UDISE+ database with reference to the LGD.",
+        "A detailed discussion meeting was held with five states (Gujarat, Assam, Himachal Pradesh, Uttarakhand, and Goa) to plan the pilot testing for integrating Assessment data with RVSK.",
+        "A detailed discussion meeting was held with Meghalaya to plan the pilot testing for integrating Administration data with RVSK.",
+        "Virtual Knowledge Sharing Session held on 13th November 2025 by RVSK-CIET, NCERT with NIOS, Chhattisgarh, and Madhya Pradesh, focusing on the development and refinement of Publishing and Establishment Dashboards.",
+        "Design Review & Data Collection Planning Session held with regard to NCERT Establishment Dashboard.",
+        "For integration of the NCTE Vidya Samiksha Kendra (VSK) with the Rashtriya Vidya Samiksha Kendra (RVSK), NCERT, a meeting was convened on 26th November 2025 at RVSK, CIET, NCERT.",
+        "14,74,45,958 APAAR IDs generated in total till 27th November 2025."
+      ],
+      "apaar_ids_total": 147445958,
+      "apaar_ids_date": "27 November 2025",
+      "sections": {
+        "data_quality": [
+          "Letters have been issued to 18 States/UTs where name mismatches were identified in the UDISE+ database with reference to the LGD (Local Government Directory), Ministry of Panchayati Raj."
+        ],
+        "state_ut_engagements": [
+          "A detailed discussion meeting was held with five states namely Gujarat, Assam, Himachal Pradesh, Uttarakhand, and Goa to plan the pilot testing for integrating Assessment data with RVSK, along with incorporating additional attendance data fields such as Class, Gender, and Social Category-wise details.",
+          "A detailed discussion meeting was held with Meghalaya to plan the pilot testing for integrating Administration data with RVSK.",
+          "Attendance Integration trouble shooting for Meghalaya, and Manipur."
+        ],
+        "knowledge_sharing": [
+          "Virtual Knowledge Sharing Session held on 13th November 2025 by RVSK-CIET, NCERT with NIOS, Chhattisgarh, and Madhya Pradesh, focusing on the development and refinement of Publishing and Establishment Dashboards."
+        ],
+        "dashboard_work": [
+          "Design Review & Data Collection Planning Session held with regard to NCERT Establishment Dashboard."
+        ],
+        "correspondence": [
+          "Request letters for Read-Only Access to Programs/Schemes Data Displayed in the states/UTs VSKs were issued which will enable RVSK to integrate and map these datasets based on Attendance, Assessment, Accreditation, Adaptive Learning and Administration parameters with the national programs.",
+          "For integration of the NCTE Vidya Samiksha Kendra (VSK) with the Rashtriya Vidya Samiksha Kendra (RVSK), NCERT, a meeting was convened on 26th November 2025 at RVSK, CIET, NCERT."
+        ],
+        "apaar": [
+          "14,74,45,958 APAAR IDs generated in total till 27th November 2025."
+        ]
+      }
+    },
+    "December 2025": {
+      "period": "December 2025",
+      "theme": "State Integration & Dashboard UAT",
+      "highlights": [
+        "Virtual meetings with Uttarakhand, Meghalaya and Goa to discuss integration of Assessment and Administration data into a unified national monitoring and analytics architecture for school education.",
+        "Virtual meeting with Manipur to provide technical support for attendance integration via API.",
+        "Andaman & Nicobar Islands (UT) Starter Pack set-up completed and ready for hand-over.",
+        "NCERT Establishment Dashboard Design Review and Data Collection Planning Session held; focus on data readiness, KPI finalisation and alignment with NCERT operational needs.",
+        "PM-SHRI & Micro-Improvement Dashboard Design enhancements finished, tested and moved to UAT.",
+        "NIPUN Assessment Dashboard Enhancements are currently in progress.",
+        "As of 31 Dec 2025, 15,32,63,531 APAAR IDs have been generated since the roll-out in September 2024."
+      ],
+      "apaar_ids_total": 153263531,
+      "apaar_ids_date": "31 December 2025",
+      "sections": {
+        "state_ut_engagements": [
+          "Virtual meetings with Uttarakhand, Meghalaya and Goa to discuss integration of Assessment and Administration data into a unified national monitoring and analytics architecture for school education.",
+          "Virtual meeting with Manipur to provide technical support for attendance integration via API.",
+          "Andaman & Nicobar Islands (UT) – Starter Pack set-up completed and ready for hand-over."
+        ],
+        "dashboard_work": [
+          "NCERT Establishment Dashboard – Design Review and Data Collection Planning Session held; focus on data readiness, KPI finalisation and alignment with NCERT operational needs.",
+          "PM-SHRI & Micro-Improvement Dashboard – Design enhancements finished, tested and moved to UAT.",
+          "NIPUN Assessment Dashboard – Enhancements are currently in progress."
+        ],
+        "correspondence": [
+          "Letter to Secretary, NCERT requesting sharing of academic & non-academic establishment data for use by Rashtriya Vidya Samiksha Kendra (RVSK), CIET.",
+          "Letters to SPDS of Goa, Gujarat, Uttarakhand, Assam, Himachal Pradesh requesting consent for Assessment Data integration with RVSK (Goa consent received).",
+          "Letter to SPDS of Meghalaya, Chandigarh requesting consent for Administration Data integration with RVSK.",
+          "Letters to Secretaries of Samagra Shiksha (Sikkim, Jharkhand, Bihar, Madhya Pradesh, Chhattisgarh) urging regular submission of teacher- and student-attendance data.",
+          "Letter to PM-SHRI Bureau requesting complete data submission to RVSK."
+        ],
+        "apaar": [
+          "As of 31 Dec 2025, 15,32,63,531 APAAR IDs have been generated since the roll-out in September 2024."
+        ]
+      }
+    },
+    "January 2026": {
+      "period": "January 2026",
+      "theme": "National Conclave Planning & Technical Developments",
+      "highlights": [
+        "PM SHRI Bureau – request for complete data submission to RVSK.",
+        "Reminder to NCTE & Government of Kerala – operationalisation of their Vidya Samiksha Kendra.",
+        "Secretary (SE&L) to Cabinet Secretary – monthly D.O. letter (Dec 2025) prepared and submitted to MoE.",
+        "Proposal submission to MoE – auto-generation module for State/UT/AB briefs (DIKSHA, VSK, APAAR data).",
+        "Letter to DDG (Statistics), Shri Pankaj K. P. Shreyasakar – request for UDISE+ data API integration.",
+        "Letter to all States/UTs (14 Jan) – progress update on BharatNet connectivity in rural secondary schools.",
+        "Letter to organise National Conclave (23-24 Feb 2026, Telangana) – request for consent to host RVSK & APAAR conclave.",
+        "31 Jan 2026: 15,67,37,923 APAAR IDs generated since rollout."
+      ],
+      "apaar_ids_total": 156737923,
+      "apaar_ids_date": "31 January 2026",
+      "sections": {
+        "correspondence": [
+          "PM SHRI Bureau – request for complete data submission to RVSK.",
+          "Reminder to NCTE & Government of Kerala – operationalisation of their Vidya Samiksha Kendra.",
+          "Secretary (SE&L) to Cabinet Secretary – monthly D.O. letter (Dec 2025) prepared and submitted to MoE.",
+          "Proposal submission to MoE – auto-generation module for State/UT/AB briefs (DIKSHA, VSK, APAAR data).",
+          "Letter to DDG (Statistics), Shri Pankaj K. P. Shreyasakar – request for UDISE+ data API integration.",
+          "Letter to all States/UTs (14 Jan) – progress update on BharatNet connectivity in rural secondary schools.",
+          "Reminder (RVSK to J&K VSK) – submission of Compliance & Status Report on Attendance Data Alignment.",
+          "Communication to Kerala Secretary & SPD – set-up & operationalisation of Vidya Samiksha Kendra (VSK).",
+          "Letter to West Bengal, Tamil Nadu, Kerala, Meghalaya – initiate APAAR ID implementation.",
+          "Letter to Jharkhand – request for Security Audit Certificate and resumption of teacher-/student-data sharing.",
+          "Letter to Kerala (Secretary & SPD) – invitation for orientation workshop on VSK establishment/operationalisation.",
+          "Letter to organise National Conclave (23-24 Feb 2026, Telangana) – request for consent to host RVSK & APAAR conclave."
+        ],
+        "meetings": [
+          "UIDAI (7 Jan 2026) – discussion on using Aadhaar for APAAR ID generation.",
+          "DDG (Statistics) (6 Jan 2026) – potential synergies between UDISE+ platform & RVSK.",
+          "APAAR ID saturation & district-wise strategy (2 Jan 2026) – virtual meeting on teacher ID generation.",
+          "PSSCIVE, Bhopal – feedback on vocational KPIs for integration into the vocational education dashboard.",
+          "RVSK review with Director, MoE (20 Jan 2026).",
+          "UIDAI (additional meeting) – APAAR ID creation for teachers.",
+          "Korean delegation visit – Mechatronics Project implementation discussions.",
+          "Visit of 28 education heads (19 countries) – exposure & interaction at RVSK."
+        ],
+        "dashboard_development": [
+          "Assessment Dashboard – prepared, further enhanced, and currently under development.",
+          "Administration Dashboard – under development.",
+          "Establishment Dashboard (NCERT) – under development.",
+          "Vocational Education Dashboard – KPIs shared with PSSCIVE for feedback."
+        ],
+        "technical_developments": [
+          "Accreditation API – development in progress.",
+          "Attendance integration for Lakshadweep – ongoing.",
+          "District-wise school, teacher, and student data – integrated with RVSK data and submitted to MoE.",
+          "Comments on revised APAAR Consent Form – sent to Ministry for consideration.",
+          "APAAR ID saturation strategy – district-wise approach discussed.",
+          "Technical support for attendance integration – ongoing (e.g., Lakshadweep)."
+        ],
+        "apaar": [
+          "31 Jan 2026: 15,67,37,923 IDs generated since rollout."
+        ]
+      }
+    }
+  }
+}
