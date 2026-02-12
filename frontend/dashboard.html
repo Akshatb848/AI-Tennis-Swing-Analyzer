@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Education Intelligence</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+    <!-- Top Status Bar -->
+    <div id="status-bar" class="status-bar">
+        <div class="status-bar-inner">
+            <span class="status-item" id="status-llm">
+                <span class="status-dot grey"></span> LLM: Checking...
+            </span>
+            <span class="status-item" id="status-vdb">
+                <span class="status-dot grey"></span> RAG: Checking...
+            </span>
+            <span class="status-item" id="status-api">
+                <span class="status-dot grey"></span> API: Checking...
+            </span>
+            <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">&#x26F6;</button>
+        </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="top-nav">
+        <a href="index.html" class="nav-brand">
+            <span class="ashoka-small">&#x2638;</span>
+            Education Intelligence
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html" class="active">Dashboard</a>
+            <a href="chat.html">AI Assistant</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+
+        <!-- Dashboard Header Row -->
+        <div class="dash-header-row">
+            <h2>RVSK Education Analytics Dashboard</h2>
+            <div class="dash-controls">
+                <label for="month-selector">Period:</label>
+                <select id="month-selector" onchange="onMonthChange()">
+                    <option value="">Loading...</option>
+                </select>
+                <span class="health-badge" id="health-badge">Checking...</span>
+            </div>
+        </div>
+
+        <!-- Month Theme -->
+        <div class="month-theme-bar">
+            <strong>Theme:</strong> <span id="month-theme">Loading...</span>
+        </div>
+
+        <!-- Highlights -->
+        <section class="dash-section">
+            <h3>Monthly Highlights</h3>
+            <ul id="month-highlights" class="highlights-list">
+                <li>Loading highlights...</li>
+            </ul>
+        </section>
+
+        <!-- Key Indicators -->
+        <section class="dash-section">
+            <h3>Key Indicators</h3>
+            <div class="kpi-grid">
+                <div class="kpi-card" id="kpi-ger-primary">
+                    <div class="kpi-value">--</div>
+                    <div class="kpi-label">APAAR IDs Generated</div>
+                </div>
+                <div class="kpi-card" id="kpi-ger-he">
+                    <div class="kpi-value">--</div>
+                    <div class="kpi-label">Operational VSKs</div>
+                </div>
+                <div class="kpi-card" id="kpi-ptr">
+                    <div class="kpi-value">--</div>
+                    <div class="kpi-label">States/UTs Integrated</div>
+                </div>
+                <div class="kpi-card" id="kpi-literacy">
+                    <div class="kpi-value">--</div>
+                    <div class="kpi-label">Dashboards in Development</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search Module -->
+        <section class="dash-section">
+            <h3>Semantic Search</h3>
+            <div class="search-bar">
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search RVSK newsletter data, policies, APAAR, VSK..."
+                    maxlength="500"
+                    oninput="debouncedSearch()"
+                >
+                <div class="search-spinner hidden" id="search-spinner"></div>
+            </div>
+            <div id="search-results" class="search-results"></div>
+        </section>
+
+        <!-- Comparison Module -->
+        <section class="dash-section">
+            <h3>State Comparison</h3>
+            <div class="compare-form">
+                <div class="compare-inputs">
+                    <select id="compare-a-sel"><option value="">Select state A...</option></select>
+                    <span class="compare-vs">vs</span>
+                    <select id="compare-b-sel"><option value="">Select state B...</option></select>
+                </div>
+                <input type="text" id="compare-metric" placeholder="Topic (optional, e.g. attendance)" maxlength="200">
+                <button class="btn btn-primary" onclick="runComparison()">Compare</button>
+            </div>
+            <div id="compare-results" class="compare-results"></div>
+        </section>
+
+    </div>
+
+    <footer class="moe-footer">
+        <p>&copy; 2026 Ministry of Education, Government of India. Rashtriya Vidya Samiksha Kendra (RVSK), CIET-NCERT. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

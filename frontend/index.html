@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Education Intelligence Dashboard — Ministry of Education</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="landing-page">
+
+    <!-- Top Status Bar -->
+    <div id="status-bar" class="status-bar">
+        <div class="status-bar-inner">
+            <span class="status-item" id="status-llm">
+                <span class="status-dot grey"></span> LLM: Checking...
+            </span>
+            <span class="status-item" id="status-vdb">
+                <span class="status-dot grey"></span> Vector DB: Checking...
+            </span>
+            <span class="status-item" id="status-api">
+                <span class="status-dot grey"></span> API: Checking...
+            </span>
+            <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">&#x26F6;</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="moe-header">
+        <div class="header-emblem">
+            <div class="ashoka-emblem">&#x2638;</div>
+        </div>
+        <div class="header-text">
+            <p class="header-ministry">Ministry of Education</p>
+            <h1 class="header-title">Education Intelligence Dashboard</h1>
+            <p class="header-subtitle">Government of India &middot; Rashtriya Vidya Samiksha Kendra (RVSK), CIET-NCERT</p>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <main class="hero-section">
+        <div class="hero-content">
+            <h2>AI-Powered Education Analytics</h2>
+            <p class="hero-desc">
+                Real-time insights into India's education ecosystem — powered by advanced
+                language models, semantic search, and multi-agent intelligence.
+            </p>
+            <div class="hero-actions">
+                <a href="dashboard.html" class="btn btn-primary">Launch Dashboard</a>
+                <a href="chat.html" class="btn btn-secondary">Ask AI Assistant</a>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">15.67 Cr</div>
+                <div class="stat-label">APAAR IDs Generated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">37+</div>
+                <div class="stat-label">Operational VSKs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">36</div>
+                <div class="stat-label">States &amp; UTs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">AI</div>
+                <div class="stat-label">Data-Verified Answers</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Features -->
+    <section class="features-section">
+        <div class="feature-card">
+            <div class="feature-icon">&#128269;</div>
+            <h3>Semantic Search</h3>
+            <p>Query education data using natural language. Powered by FAISS vector database.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">&#129302;</div>
+            <h3>AI Assistant</h3>
+            <p>Ask complex questions about education metrics. Get instant, sourced answers.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">&#128202;</div>
+            <h3>Comparison Engine</h3>
+            <p>Compare states, districts, and metrics side-by-side with AI-generated insights.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">&#128200;</div>
+            <h3>Live Dashboard</h3>
+            <p>Interactive visualizations updated in real-time from the national data pipeline.</p>
+        </div>
+    </section>
+
+    <!-- Conference QR Access -->
+    <section class="qr-section">
+        <div class="qr-content">
+            <h2>Conference Access</h2>
+            <p>Scan the QR code to access the Education Intelligence Dashboard on your device</p>
+            <div class="qr-placeholder" id="qr-code">
+                <div class="qr-box">
+                    <div class="qr-label">Scan to Access Dashboard</div>
+                    <canvas id="qr-canvas" width="200" height="200"></canvas>
+                    <div class="qr-url" id="qr-url"></div>
+                </div>
+            </div>
+            <p class="qr-hint">Point your phone camera at the QR code above</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="moe-footer">
+        <p>&copy; 2026 Ministry of Education, Government of India. All rights reserved.</p>
+        <p class="footer-tech">RVSK, CIET-NCERT &middot; Powered by AI Multi-Agent System</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>checkSystemHealth();</script>
+</body>
+</html>
