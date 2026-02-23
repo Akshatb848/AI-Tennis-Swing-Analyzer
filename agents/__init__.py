@@ -1,59 +1,18 @@
-"""
-Data Science Agent Platform - Agents Module
-"""
-
-import pandas as pd
-
-# CRITICAL: Disable pandas 3.x StringDtype globally.
-# Without this, pd.read_csv() creates StringDtype columns which crash
-# numpy operations (corr, get_dummies, factorize) across all agents.
-pd.set_option("future.infer_string", False)
-
-from .base_agent import (
-    BaseAgent,
-    AgentState,
-    AgentMessage,
-    MessageType,
-    TaskResult,
-    generate_uuid,
-    is_valid_uuid,
-    get_numeric_cols,
-    get_categorical_cols,
-    get_datetime_cols,
-    get_numeric_df,
-    _sanitize_dataframe,
-)
-from .coordinator_agent import CoordinatorAgent, Workflow, WorkflowStep
-from .data_cleaner_agent import DataCleanerAgent
-from .eda_agent import EDAAgent
-from .feature_engineer_agent import FeatureEngineerAgent
-from .model_trainer_agent import ModelTrainerAgent
-from .automl_agent import AutoMLAgent
-from .dashboard_builder_agent import DashboardBuilderAgent
-from .data_visualizer_agent import DataVisualizerAgent
-from .forecast_agent import ForecastAgent
-from .insights_agent import InsightsAgent
-from .report_generator_agent import ReportGeneratorAgent
+from agents.base import AgentResult, BaseAgent
+from agents.business_strategy_agent import BusinessStrategyAgent
+from agents.data_engineering_agent import DataEngineeringAgent
+from agents.exploratory_analysis_agent import ExploratoryAnalysisAgent
+from agents.modeling_ml_agent import ModelingMLAgent
+from agents.mlops_deployment_agent import MLOpsDeploymentAgent
+from agents.orchestrator import Orchestrator
 
 __all__ = [
+    "AgentResult",
     "BaseAgent",
-    "AgentState",
-    "AgentMessage",
-    "MessageType",
-    "TaskResult",
-    "generate_uuid",
-    "is_valid_uuid",
-    "CoordinatorAgent",
-    "Workflow",
-    "WorkflowStep",
-    "DataCleanerAgent",
-    "EDAAgent",
-    "FeatureEngineerAgent",
-    "ModelTrainerAgent",
-    "AutoMLAgent",
-    "DashboardBuilderAgent",
-    "DataVisualizerAgent",
-    "ForecastAgent",
-    "InsightsAgent",
-    "ReportGeneratorAgent",
+    "BusinessStrategyAgent",
+    "DataEngineeringAgent",
+    "ExploratoryAnalysisAgent",
+    "ModelingMLAgent",
+    "MLOpsDeploymentAgent",
+    "Orchestrator",
 ]

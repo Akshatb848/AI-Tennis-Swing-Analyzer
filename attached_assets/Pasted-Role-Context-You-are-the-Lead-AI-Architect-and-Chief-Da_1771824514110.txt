@@ -1,0 +1,450 @@
+Role & Context
+You are the Lead AI Architect and Chief Data Scientist building a multi-agent "full-stack AI data scientist" system that operates entirely on free and open-source infrastructure with zero monetary investment required.
+
+Hard Constraint: ZERO COST
+Every component—compute, storage, LLM inference, deployment platform, database, vector store, and monitoring—must use free open-source tools or free-tier cloud services. No paid APIs, no commercial licenses, no credit card required.
+
+The 5-Pillar Data Scientist Workflow
+Implement the complete hierarchy based on real data scientist functions:
+​
+
+1. Business & Strategy
+
+Define Objectives
+
+Manage Stakeholders (conversational "what-if" interface)
+
+2. Data Engineering
+
+Data Acquisition (robust CSV/SQL/API ingestion)
+
+Cleaning Data (advanced imputation, outlier handling)
+
+Feature Engineering (encoding, scaling, PCA, feature selection)
+
+3. Exploratory Analysis
+
+Statistical Analysis (tests, distributions, correlation)
+
+Data Visualization (dashboard-ready chart specifications)
+
+4. Modeling & ML
+
+Algorithm Selection (ML/DL/RL based on problem type)
+
+Model Training (XGBoost, LightGBM, PyTorch, stable-baselines3)
+
+Hyperparameter Tuning (Optuna-based optimization)
+
+Model Validation (cross-validation, leaderboard generation)
+
+5. MLOps & Deployment
+
+Production deployment on free platforms
+
+Production Monitoring (drift detection, logging)
+
+Mandatory Technology Stack (100% Free & Open-Source)
+LLM Inference (The Brain)
+Use DeepSeek R1 / DeepSeek-V3 or Qwen 2.5 Coder / Qwen 3 running locally via:
+
+Ollama (preferred for local CPU/GPU inference, zero cost)
+
+LM Studio (alternative local option)
+
+Implement llm_client.py using the OpenAI-compatible API that Ollama provides (default: http://localhost:11434)
+
+Never call paid APIs (OpenAI, Anthropic, Cohere). All reasoning must run locally.
+
+Vector Store (RAG Knowledge Base)
+ChromaDB (local, embedded, zero setup) OR
+
+FAISS (Facebook's vector search, local files)
+
+Store deployment guides, ML best practices, and troubleshooting docs
+
+No Pinecone, Weaviate Cloud, or other paid vector DBs
+
+Database (Metadata & Experiments)
+SQLite (default, single-file, zero setup) for local development
+
+PostgreSQL on free tier for deployment:
+
+Supabase (free tier: 500MB database)
+
+Neon (free tier: 10GB storage)
+
+ElephantSQL (free tier: 20MB, good for metadata-only)
+
+Never use AWS RDS, Azure SQL, or other paid services
+
+Model & Artifact Storage
+Local filesystem during development
+
+For deployment, use:
+
+GitHub releases (up to 2GB per file for model weights)
+
+Hugging Face Hub (unlimited free public model hosting)
+
+Save models using joblib, pickle, or torch.save
+
+Web Deployment Platform
+Choose based on app type:
+
+Streamlit Community Cloud (preferred for full Streamlit apps)
+
+Free unlimited public apps
+
+Direct GitHub integration
+
+1GB RAM, sufficient for most dashboards
+
+Hugging Face Spaces (for Streamlit or Gradio)
+
+Free CPU (2 vCPU, 16GB RAM)
+
+Good for demo and production
+
+Render.com Free Tier (for FastAPI backend)
+
+750 hours/month free
+
+Auto-sleep after 15 min inactivity
+
+Railway Free Tier (alternative, $5 free credit/month, no card needed initially)
+
+Never use Heroku paid tiers, AWS Lambda with costs, or GCP paid services
+
+Monitoring & Logging
+Built-in Python logging module with structured JSON logs
+
+SQLite/PostgreSQL tables for tracking:
+
+Prediction logs (timestamp, features, prediction, confidence)
+
+Drift metrics (KL divergence, PSI scores)
+
+Model performance over time
+
+No Datadog, New Relic, or commercial APM tools
+
+Architecture & Implementation Requirements
+1. Repository Structure
+text
+ai-data-scientist/
+├── agents/
+│   ├── business_strategy_agent.py      # Stage 1: Objectives + Stakeholder chat
+│   ├── data_engineering_agent.py       # Stage 2: Acquisition + Cleaning + Features
+│   ├── exploratory_analysis_agent.py   # Stage 3: Stats + Viz specs
+│   ├── modeling_ml_agent.py            # Stage 4: Selection + Training + Tuning + Validation
+│   └── mlops_deployment_agent.py       # Stage 5: Deployment + Monitoring
+├── core/
+│   ├── orchestrator.py                 # Central pipeline coordinator
+│   ├── llm_client.py                   # Ollama OpenAI-compatible client
+│   ├── rag_client.py                   # ChromaDB/FAISS RAG utilities
+│   ├── data_loader.py                  # Robust CSV ingestion (from previous fixes)
+│   └── models.py                       # Pydantic schemas (ProjectObjective, etc.)
+├── dashboard/
+│   ├── app.py                          # Streamlit main app
+│   ├── pages/
+│   │   ├── 1_data_overview.py
+│   │   ├── 2_exploration.py
+│   │   ├── 3_modeling.py
+│   │   └── 4_deployment.py
+│   └── components/
+│       ├── chat_interface.py           # "What-if" chat widget
+│       └── visualizations.py           # Reusable chart builders
+├── rag_docs/                           # Knowledge base for RAG
+│   ├── ml_best_practices.md
+│   ├── deployment_guide.md
+│   └── troubleshooting.md
+├── tests/
+│   ├── test_data_loader.py
+│   ├── test_agents.py
+│   └── test_llm_client.py
+├── .streamlit/
+│   └── config.toml                     # Streamlit theme config
+├── requirements.txt                     # All free dependencies
+├── Dockerfile                          # For local testing/optional deployment
+├── README.md                           # Setup & deployment instructions
+└── setup_rag.py                        # One-time script to index RAG docs
+2. Agent Implementation Details
+Business & Strategy Agent (business_strategy_agent.py)
+
+Define Objectives:
+
+Input: dataset_profile, user_initial_prompt
+
+Process: Use local LLM (via llm_client) to analyze and propose:
+
+Problem type (regression/classification/clustering/time-series)
+
+Target variable candidates
+
+Business KPI (accuracy, recall, MAE, etc.)
+
+Constraints (speed, interpretability)
+
+Output: ProjectObjective Pydantic model
+
+Manage Stakeholders:
+
+Function: handle_chat_query(query: str, current_state: dict) -> ImpactAnalysis
+
+Use RAG to retrieve context + LLM to reason about "what-if" scenarios
+
+Example: "What if we drop 'age' column?" → LLM estimates impact on accuracy/latency
+
+Must ask user confirmation before applying changes
+
+Data Engineering Agent (data_engineering_agent.py)
+
+Data Acquisition: Wrap robust CSV loader from previous fix
+
+Cleaning Data:
+
+Implement multiple imputation strategies (mean/median/KNN/iterative)
+
+Use sklearn.impute (free)
+
+Detect and handle outliers using IQR or isolation forest
+
+Feature Engineering:
+
+Categorical encoding (OneHot, Target Encoding)
+
+Scaling (StandardScaler, MinMaxScaler)
+
+PCA for dimensionality reduction when features > 50
+
+Feature selection using mutual information or L1 regularization
+
+Output: EngineeredDataset + DataEngineeringReport
+
+Exploratory Analysis Agent (exploratory_analysis_agent.py)
+
+Statistical Analysis:
+
+Compute correlation matrix
+
+Run ANOVA (numerical vs categorical target)
+
+Chi-square tests (categorical features vs categorical target)
+
+Use scipy.stats (free)
+
+Data Visualization:
+
+Generate VisualizationSpec objects (not actual images)
+
+Specs include: chart_type, x_col, y_col, color_by, title
+
+Dashboard will render these using Plotly (free)
+
+Output: ExplorationReport + list of VisualizationSpec
+
+Modeling & ML Agent (modeling_ml_agent.py)
+
+Algorithm Selection:
+
+Problem type detection logic
+
+Shortlist:
+
+Traditional ML: XGBoost, LightGBM, RandomForest, LinearRegression/LogisticRegression
+
+Deep Learning: PyTorch MLP or TabNet (for >50k rows and >20 features)
+
+RL: stable-baselines3 PPO/SAC (only if sequential/decision data detected)
+
+Model Training:
+
+Train all candidates with train/val split
+
+Log training time and memory usage
+
+Hyperparameter Tuning:
+
+Use Optuna (free, open-source)
+
+Bounded search (max 50 trials per model to keep runtime reasonable)
+
+Model Validation:
+
+Cross-validation (5-fold)
+
+Compute metrics: RMSE/MAE/R² for regression; Accuracy/F1/ROC-AUC for classification
+
+Generate ModelLeaderboard with champion selection
+
+Output: ModelingResult with ChampionModel handle
+
+MLOps & Deployment Agent (mlops_deployment_agent.py)
+
+Deployment:
+
+Generate inference script: predict.py or Streamlit prediction page
+
+Save model using joblib or torch.save to models/ directory
+
+Use RAG to fetch deployment best practices and generate:
+
+requirements.txt updates
+
+README.md deployment section
+
+Streamlit Community Cloud config or Dockerfile
+
+Production Monitoring:
+
+Create monitoring.py module:
+
+Log each prediction to SQLite table: predictions(id, timestamp, features_json, prediction, model_version)
+
+Compute distribution drift using KL divergence between training and production feature distributions
+
+Surface warnings in dashboard when drift > threshold
+
+Output: DeploymentInfo + monitoring utilities
+
+3. LLM Client Implementation (llm_client.py)
+python
+# Must use Ollama with DeepSeek or Qwen models
+import requests
+from typing import List, Dict, Optional
+
+class OllamaLLMClient:
+    def __init__(self, base_url: str = "http://localhost:11434", model: str = "deepseek-r1:7b"):
+        self.base_url = base_url
+        self.model = model
+    
+    def chat(self, system_prompt: str, messages: List[Dict], temperature: float = 0.7) -> str:
+        # OpenAI-compatible chat completion via Ollama
+        # Implementation details required in actual code
+        pass
+
+    def reasoning_chain(self, task: str, context: dict) -> Dict:
+        # For "what-if" analysis and impact estimation
+        pass
+Must default to deepseek-r1:7b or qwen2.5-coder:7b
+
+Include fallback to llama3.1:8b if others unavailable
+
+Add error handling for Ollama not running
+
+4. RAG Client Implementation (rag_client.py)
+python
+import chromadb
+from chromadb.utils import embedding_functions
+
+class RAGClient:
+    def __init__(self, persist_dir: str = "./chroma_db"):
+        self.client = chromadb.PersistentClient(path=persist_dir)
+        self.collection = self.client.get_or_create_collection("knowledge_base")
+    
+    def index_documents(self, docs_dir: str):
+        # Load markdown files from rag_docs/ and index
+        pass
+    
+    def retrieve(self, query: str, top_k: int = 3) -> List[str]:
+        # Semantic search for relevant context
+        pass
+Use ChromaDB's default sentence-transformers embedding (free)
+
+Index deployment guides and ML best practices on first run
+
+Deployment Instructions (Must Generate)
+Local Development:
+
+bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull deepseek-r1:7b
+
+# Setup project
+pip install -r requirements.txt
+python setup_rag.py  # Index knowledge base
+streamlit run dashboard/app.py
+Deploy to Streamlit Community Cloud:
+
+Push to GitHub
+
+Connect repo to Streamlit Cloud
+
+Set secrets in Streamlit dashboard (if needed for DB connection strings)
+
+Auto-deploys on push to main branch
+
+Alternative: Hugging Face Spaces:
+
+Add app.py at root pointing to dashboard/app.py
+
+Add requirements.txt
+
+Push to HF Space repository
+
+Automatically deployed with persistent storage
+
+What You Must Output in This Response
+Complete architecture overview mapping each hierarchy function to modules
+
+Full Python code for:
+
+All 5 agent modules (business, data eng, exploration, modeling, mlops)
+
+orchestrator.py (runs the 5-stage pipeline)
+
+llm_client.py (Ollama integration)
+
+rag_client.py (ChromaDB integration)
+
+models.py (Pydantic schemas: ProjectObjective, EngineeredDataset, ModelLeaderboard, DeploymentInfo)
+
+Main Streamlit app.py with chat interface
+
+Complete requirements.txt with exact free packages:
+
+pandas, numpy, scikit-learn, xgboost, lightgbm, optuna
+
+torch (CPU version), stable-baselines3
+
+chromadb, faiss-cpu
+
+streamlit, plotly
+
+requests (for Ollama API)
+
+pydantic, python-dotenv
+
+Setup scripts:
+
+setup_rag.py to initialize ChromaDB with knowledge base
+
+run_local.sh to start Ollama + Streamlit
+
+Deployment guide in README.md:
+
+How to run locally (with Ollama)
+
+How to deploy to Streamlit Cloud (step-by-step)
+
+How to deploy to Hugging Face Spaces (alternative)
+
+Estimated resource usage (confirm it fits free tiers)
+
+Quality Requirements
+Zero paid services: Double-check every component is free
+
+Production-grade: Type hints, docstrings, error handling, logging
+
+Testable: Include unit tests for core functions
+
+Deterministic: Same data + seed = same results
+
+Documented: Clear README with troubleshooting section
+
+Portable: Works on Linux/Mac/Windows with minimal setup
+
+Start by confirming you understand the zero-cost constraint and the 5-pillar hierarchy, then output the complete implementation as described above.
+

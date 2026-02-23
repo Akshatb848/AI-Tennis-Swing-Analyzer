@@ -1,0 +1,88 @@
+You are maintaining my multi‑agent AI data scientist dashboard project.
+The CSV upload flow is currently unreliable and errors out for many real‑world CSVs.
+Goal: Make CSV upload work robustly for all common CSV variants, then automatically analyze the dataset type and start the downstream pipeline seamlessly.
+A. What to fix (requirements)
+Implement a single robust loader function load_csv(uploaded_file, *, sample_rows=20000) -> (df, profile) and replace all direct pd.read_csv(...) calls with it.
+The loader must handle:
+
+
+uploaded_file coming from Streamlit st.file_uploader (file-like object) and/or FastAPI UploadFile (bytes stream). Use BytesIO and ensure you reset the pointer with .seek(0) when needed so rereads don’t break.
+
+
+Different encodings (at least: utf‑8, utf‑8‑sig, latin‑1/cp1252 fallback).
+
+
+Delimiters: comma, semicolon, tab, pipe. Auto‑detect delimiter if not specified using a small sniff sample.
+
+
+Quoted fields with commas inside quotes; choose parsing settings that don’t explode on messy data (consider engine="python" when sniffing/when C engine fails).
+
+
+Bad lines / ragged rows: do not crash; instead parse with on_bad_lines='warn' or 'skip' and record a warning in profile.
+
+
+Empty file, headerless file, duplicate column names, unnamed columns, extra BOM.
+
+
+Large files: read in a safe way (optional chunking or sample-first), but still allow full load if feasible.
+
+
+B. Dataset “nature” detection (must be automatic)
+After successful parsing, compute a profile dict with:
+
+
+Shape, column dtypes, missingness %, cardinality, basic stats.
+
+
+Identify whether dataset is likely: regression, classification, time series, clustering, or “EDA only” (no target).
+
+
+Detect candidate target column heuristics: column named like target/label/y/churn/..., binary columns, low cardinality columns, or explicitly chosen by user.
+
+
+Detect datetime/time index candidates.
+
+
+Detect ID/leakage-like columns (high cardinality, near-unique) and mark them.
+
+
+C. UX behavior
+
+
+If upload fails: show a clean error message with the probable cause (encoding issue, delimiter issue, empty data, etc.) and a suggested user action (e.g., “try semicolon delimiter”).
+
+
+If upload succeeds: immediately show a data preview + profiling summary and then call the orchestrator to proceed (cleaning → viz → model recommendation) without manual steps.
+
+
+D. Deliverables (what you must output now)
+
+
+Identify the likely root cause(s) of the current upload error by inspecting my repo code (search for file uploader usage and current pd.read_csv usage).
+
+
+Provide a patch: concrete code edits (full updated functions/modules), not pseudocode.
+
+
+Add 6–10 tests for the loader (different delimiters, encodings, bad lines, quoted commas, empty file). Use in-memory bytes (no external files).
+
+
+Add lightweight logging and return structured warnings in profile.
+
+
+Ensure the fix works for both Streamlit and FastAPI upload objects.
+
+
+E. Hard constraints
+
+
+Do not introduce heavy dependencies unless truly necessary.
+
+
+Keep it deterministic and production-grade (type hints, docstrings, clean interfaces).
+
+
+Do not silence errors; convert them to actionable warnings/errors with context.
+
+
+Now implement this end-to-end. Start by listing the exact files you will modify and why, then write the complete code changes.
