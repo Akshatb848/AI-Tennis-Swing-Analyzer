@@ -3,9 +3,10 @@ Event Processor — Converts raw CV detections into tennis-meaningful events.
 
 Handles:
 - Ball bounce → in/out decision with uncertainty radius
-- Hit detection → shot segmentation
+- Hit detection → shot segmentation via trajectory + acceleration + proximity
 - Rally boundary detection
 - Point outcome inference
+- Frame-accurate shot timeline
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import math
 import uuid
 from typing import Optional
 
+from tennis.engine.shot_classifier import ShotClassifier
 from tennis.models.events import (
     BallEvent,
     BounceConfidence,
@@ -193,6 +195,7 @@ class EventProcessor:
 
     def __init__(self, is_doubles: bool = False):
         self.court = CourtGeometry(is_doubles=is_doubles)
+        self.shot_classifier = ShotClassifier()
         self.current_rally_events: list[BallEvent] = []
         self.current_rally_shots: list[ShotDetail] = []
         self.rally_counter: int = 0
@@ -205,6 +208,13 @@ class EventProcessor:
         self._last_hit_player: Optional[str] = None
         self._rally_active: bool = False
         self._shot_count: int = 0
+
+        # Player roster for opponent lookup
+        self._player_ids: list[str] = []
+
+        # Shot detection state for trajectory analysis
+        self._prev_trajectory_angle: Optional[float] = None
+        self._trajectory_speeds: list[float] = []  # recent speeds for spike detection
 
     def process_ball_event(
         self,
@@ -309,7 +319,7 @@ class EventProcessor:
         event: BallEvent,
         player_events: Optional[list[PlayerEvent]] = None,
     ) -> None:
-        """Process a ball hit event."""
+        """Process a ball hit event with trajectory-based detection."""
         self._shot_count += 1
         self._last_hit_frame = event.frame_number
 
@@ -318,13 +328,26 @@ class EventProcessor:
 
         self.current_rally_events.append(event)
 
-        # Try to classify the shot
-        shot_type = self._classify_shot(event, player_events)
+        # Track player roster for opponent lookup
+        if player_events:
+            for pe in player_events:
+                if pe.player_id and pe.player_id not in self._player_ids:
+                    self._player_ids.append(pe.player_id)
+
+        # Classify the shot using the full classifier
+        shot_type, shot_confidence = self._classify_shot(event, player_events)
         player_id = self._determine_hitting_player(event, player_events)
         self._last_hit_player = player_id
 
+        # Track speed for trajectory analysis
+        if event.velocity_mph:
+            self._trajectory_speeds.append(event.velocity_mph)
+            if len(self._trajectory_speeds) > 10:
+                self._trajectory_speeds = self._trajectory_speeds[-10:]
+
         if player_id:
             speed_mph = event.velocity_mph or 0.0
+            speed_kph = speed_mph * 1.60934 if speed_mph else None
             zone = None
             if event.position_court:
                 zone = self.court.get_court_zone(event.position_court)
@@ -333,7 +356,7 @@ class EventProcessor:
                 shot_type=shot_type,
                 player_id=player_id,
                 speed_mph=speed_mph,
-                speed_kph=speed_mph * 1.60934 if speed_mph else None,
+                speed_kph=speed_kph,
                 placement_zone=zone,
                 timestamp_ms=event.timestamp_ms,
                 frame_number=event.frame_number,
@@ -404,36 +427,57 @@ class EventProcessor:
         self,
         event: BallEvent,
         player_events: Optional[list[PlayerEvent]] = None,
-    ) -> ShotType:
-        """Classify the shot type based on ball trajectory and player pose."""
-        if self._shot_count <= 1 and self.is_serving:
-            return ShotType.SERVE
+    ) -> tuple[ShotType, float]:
+        """Classify the shot type using full trajectory + pose analysis."""
+        # Extract pose from nearest player
+        player_pose = None
+        player_position = None
+        if player_events:
+            nearest = self._find_nearest_player(event, player_events)
+            if nearest:
+                player_pose = nearest.pose
+                player_position = nearest.position_court
 
-        # Heuristic classification based on ball position relative to player
-        # In production, this would use the ShotNet ML model
-        if self._shot_count <= 2:
-            # Return
-            return ShotType.RETURN_FH  # Simplified; pose-dependent in production
+        # Ball trajectory angle (compute from velocity if available)
+        trajectory_angle = 0.0
+        if event.velocity_mph:
+            speed = event.velocity_mph
+            trajectory_angle = self._compute_trajectory_angle(event)
 
-        # Default to forehand for now; ML model handles real classification
-        return ShotType.FOREHAND
+        shot_type, confidence = self.shot_classifier.classify(
+            ball_position=event.position_court,
+            ball_velocity_mph=event.velocity_mph or 0.0,
+            ball_trajectory_angle=trajectory_angle,
+            player_pose=player_pose,
+            player_position=player_position,
+            shot_number_in_rally=self._shot_count,
+            is_serve=(self._shot_count <= 1 and self.is_serving),
+            prev_trajectory_angle=self._prev_trajectory_angle,
+        )
 
-    def _determine_hitting_player(
-        self,
-        ball_event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
-    ) -> Optional[str]:
-        """Determine which player hit the ball based on proximity."""
-        if not player_events:
-            return self._last_hit_player
+        self._prev_trajectory_angle = trajectory_angle
+        return shot_type, confidence
 
+    def _compute_trajectory_angle(self, event: BallEvent) -> float:
+        """Compute ball trajectory angle from recent events."""
+        if len(self.current_rally_events) < 2:
+            return 0.0
+        prev = self.current_rally_events[-1]
+        if prev.position_court and event.position_court:
+            dx = event.position_court.x - prev.position_court.x
+            dy = event.position_court.y - prev.position_court.y
+            return math.degrees(math.atan2(dy, dx))
+        return 0.0
+
+    def _find_nearest_player(
+        self, ball_event: BallEvent, player_events: list[PlayerEvent]
+    ) -> Optional[PlayerEvent]:
+        """Find the player closest to the ball position."""
         if not ball_event.position_court:
-            return player_events[0].player_id if player_events else None
+            return player_events[0] if player_events else None
 
-        # Find closest player to ball position
         min_dist = float("inf")
-        closest_player = None
-
+        nearest = None
         for pe in player_events:
             if pe.position_court:
                 dx = pe.position_court.x - ball_event.position_court.x
@@ -441,13 +485,64 @@ class EventProcessor:
                 dist = math.sqrt(dx * dx + dy * dy)
                 if dist < min_dist:
                     min_dist = dist
-                    closest_player = pe.player_id
+                    nearest = pe
+        return nearest
 
-        return closest_player
+    def _determine_hitting_player(
+        self,
+        ball_event: BallEvent,
+        player_events: Optional[list[PlayerEvent]] = None,
+    ) -> Optional[str]:
+        """Determine which player hit the ball.
+
+        Uses two signals:
+        1. Spatial proximity (closest player to ball)
+        2. Alternation logic (players alternate hits in rallies)
+        """
+        if not player_events:
+            # Alternate from last hit player if known
+            return self._alternate_player()
+
+        if not ball_event.position_court:
+            # Try alternation first, then fall back to first player
+            alt = self._alternate_player()
+            return alt if alt else (player_events[0].player_id if player_events else None)
+
+        # Find closest player
+        nearest = self._find_nearest_player(ball_event, player_events)
+        closest_id = nearest.player_id if nearest else None
+
+        # Cross-validate with alternation logic
+        expected = self._alternate_player()
+        if expected and closest_id and expected != closest_id:
+            # Proximity wins, but only if the distance is reasonable (<3m)
+            if nearest and nearest.position_court:
+                dx = nearest.position_court.x - ball_event.position_court.x
+                dy = nearest.position_court.y - ball_event.position_court.y
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist < 3.0:
+                    return closest_id
+            return expected  # alternation wins if proximity is ambiguous
+
+        return closest_id or expected
+
+    def _alternate_player(self) -> Optional[str]:
+        """Get the expected next hitter via alternation logic."""
+        if not self._last_hit_player or len(self._player_ids) < 2:
+            return self._last_hit_player
+        for pid in self._player_ids:
+            if pid != self._last_hit_player:
+                return pid
+        return self._last_hit_player
 
     def _get_opponent(self, player_id: Optional[str]) -> Optional[str]:
-        """Get opponent player ID. Simplified — needs match context in production."""
-        return None  # Needs match-level player roster
+        """Get opponent player ID using tracked player roster."""
+        if not player_id:
+            return None
+        for pid in self._player_ids:
+            if pid != player_id:
+                return pid
+        return None
 
     def _calculate_excitement(self) -> float:
         """Calculate an excitement score for highlight ranking."""

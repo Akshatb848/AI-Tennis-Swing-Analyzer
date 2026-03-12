@@ -18,6 +18,7 @@ from typing import Optional
 
 from tennis.models.coaching import (
     CoachingFeedback,
+    CoachingInsight,
     CoachingPriority,
     DetectedFlaw,
     DrillSuggestion,
@@ -398,3 +399,247 @@ class CoachingEngine:
         if feedback.primary_correction:
             parts.append(f"Key focus: {feedback.primary_correction}")
         return " ".join(parts)
+
+
+# ── Continuous Coaching Intelligence ─────────────────────────────────────────
+
+class ContinuousCoach:
+    """Real-time coaching intelligence that analyzes gameplay continuously.
+
+    Maintains rolling analysis state and detects patterns across a session:
+    - Repeated errors in similar contexts
+    - Late preparation (not in ready position when ball crosses net)
+    - Poor positioning (no-man's land during defense)
+    - Depth degradation (shots getting shorter over time)
+    - Movement inefficiency (not recovering to center)
+
+    All feedback is evidence-based: no generic statements, every insight
+    references specific observed data.
+    """
+
+    def __init__(self, session_id: str = "", player_id: str = ""):
+        self.session_id = session_id
+        self.player_id = player_id
+        self._insights: dict[str, CoachingInsight] = {}  # key = issue hash
+        self._point_counter: int = 0
+
+        # Rolling state for pattern detection
+        self._error_log: list[dict] = []       # recent errors with context
+        self._shot_depths: list[float] = []     # shot depth over time
+        self._recovery_positions: list[float] = []  # x-position after each shot
+        self._positioning_log: list[dict] = []  # player positions per rally
+
+    def analyze_rally(self, rally_data: dict) -> list[CoachingInsight]:
+        """Analyze a single rally and return new/updated insights."""
+        self._point_counter += 1
+        new_insights = []
+
+        shots = rally_data.get("shots", [])
+        outcome = rally_data.get("outcome_type", "")
+        winner_id = rally_data.get("winner_id", "")
+
+        # Track errors
+        if outcome in ("unforced_error", "forced_error") and winner_id != self.player_id:
+            last_shot = shots[-1] if shots else {}
+            self._error_log.append({
+                "shot_type": last_shot.get("shot_type", "unknown"),
+                "point": self._point_counter,
+                "zone": last_shot.get("placement_zone", ""),
+                "speed": last_shot.get("speed_mph", 0),
+            })
+
+        # Track shot depths
+        for s in shots:
+            if s.get("player_id") == self.player_id and s.get("court_position_y"):
+                self._shot_depths.append(abs(s["court_position_y"]))
+
+        # Run pattern detectors
+        insight = self._detect_repeated_errors()
+        if insight:
+            new_insights.append(insight)
+
+        insight = self._detect_poor_positioning(shots)
+        if insight:
+            new_insights.append(insight)
+
+        insight = self._detect_depth_degradation()
+        if insight:
+            new_insights.append(insight)
+
+        return new_insights
+
+    def analyze_point(self, point_data: dict) -> list[CoachingInsight]:
+        """Analyze a single point — delegates to analyze_rally."""
+        return self.analyze_rally(point_data)
+
+    def get_insights(self) -> list[CoachingInsight]:
+        """Return all accumulated coaching insights, sorted by severity."""
+        return sorted(self._insights.values(), key=lambda x: x.severity, reverse=True)
+
+    def _detect_repeated_errors(self) -> Optional[CoachingInsight]:
+        """Detect same shot type failing 3+ times in similar contexts."""
+        if len(self._error_log) < 3:
+            return None
+
+        # Count errors by shot type
+        shot_counts: dict[str, int] = {}
+        for err in self._error_log[-15:]:
+            st = err.get("shot_type", "unknown")
+            shot_counts[st] = shot_counts.get(st, 0) + 1
+
+        for shot_type, count in shot_counts.items():
+            if count >= 3:
+                key = f"repeated_error_{shot_type}"
+                evidence = [
+                    f"{shot_type} errors: {count} in last 15 points",
+                    f"Most recent at point {self._error_log[-1].get('point', 0)}",
+                ]
+                insight = CoachingInsight(
+                    session_id=self.session_id,
+                    player_id=self.player_id,
+                    observed_issue=f"Repeated {shot_type} errors ({count} in recent play)",
+                    supporting_evidence=evidence,
+                    suggested_improvement=f"Simplify {shot_type} placement — aim for larger targets, focus on clean contact",
+                    category="consistency",
+                    occurrences=count,
+                    severity=min(0.4 + count * 0.1, 1.0),
+                    first_seen_point=self._error_log[0].get("point", 0),
+                    last_seen_point=self._point_counter,
+                )
+                self._insights[key] = insight
+                return insight
+        return None
+
+    def _detect_poor_positioning(self, shots: list[dict]) -> Optional[CoachingInsight]:
+        """Detect player in no-man's land or wrong position during defense."""
+        no_mans_land_count = 0
+        for s in shots:
+            if s.get("player_id") == self.player_id:
+                zone = str(s.get("placement_zone", ""))
+                if "no_mans_land" in zone:
+                    no_mans_land_count += 1
+                    self._positioning_log.append({
+                        "point": self._point_counter,
+                        "zone": zone,
+                    })
+
+        total_nml = len(self._positioning_log)
+        if total_nml >= 3:
+            key = "poor_positioning_nml"
+            evidence = [
+                f"Found in no-man's land zone {total_nml} times",
+                f"Last occurrence at point {self._point_counter}",
+            ]
+            insight = CoachingInsight(
+                session_id=self.session_id,
+                player_id=self.player_id,
+                observed_issue=f"Frequent positioning in no-man's land ({total_nml} occurrences)",
+                supporting_evidence=evidence,
+                suggested_improvement="Commit to either the baseline or the net — avoid staying in no-man's land where you're vulnerable to passing shots",
+                category="positioning",
+                occurrences=total_nml,
+                severity=min(0.5 + total_nml * 0.05, 0.9),
+                first_seen_point=self._positioning_log[0].get("point", 0),
+                last_seen_point=self._point_counter,
+            )
+            self._insights[key] = insight
+            return insight
+        return None
+
+    def _detect_depth_degradation(self) -> Optional[CoachingInsight]:
+        """Detect shot depth decreasing over time (mid-court floaters)."""
+        if len(self._shot_depths) < 10:
+            return None
+
+        # Compare first half vs second half depths
+        mid = len(self._shot_depths) // 2
+        first_avg = sum(self._shot_depths[:mid]) / mid if mid > 0 else 0
+        second_avg = sum(self._shot_depths[mid:]) / (len(self._shot_depths) - mid) if (len(self._shot_depths) - mid) > 0 else 0
+
+        if first_avg > 0 and second_avg < first_avg * 0.75:
+            decline_pct = (1 - second_avg / first_avg) * 100
+            key = "depth_degradation"
+            evidence = [
+                f"Average shot depth dropped {decline_pct:.0f}% over the session",
+                f"First half avg depth: {first_avg:.1f}m, second half: {second_avg:.1f}m",
+            ]
+            insight = CoachingInsight(
+                session_id=self.session_id,
+                player_id=self.player_id,
+                observed_issue=f"Shot depth declining ({decline_pct:.0f}% decrease over session)",
+                supporting_evidence=evidence,
+                suggested_improvement="Focus on driving through the ball with full follow-through — aim for the back third of the court",
+                category="consistency",
+                occurrences=1,
+                severity=min(0.5 + decline_pct / 100, 0.9),
+                first_seen_point=mid,
+                last_seen_point=self._point_counter,
+            )
+            self._insights[key] = insight
+            return insight
+        return None
+
+    def _detect_late_preparation(self, player_positions: list[dict]) -> Optional[CoachingInsight]:
+        """Detect when player is not in ready position when ball crosses net."""
+        late_count = 0
+        for pos in player_positions:
+            if not pos.get("split_step_detected", True):
+                late_count += 1
+
+        if late_count >= 3:
+            key = "late_preparation"
+            evidence = [
+                f"Late preparation detected {late_count} times",
+                "Player not in ready position at ball contact",
+            ]
+            insight = CoachingInsight(
+                session_id=self.session_id,
+                player_id=self.player_id,
+                observed_issue=f"Late shot preparation ({late_count} occurrences)",
+                supporting_evidence=evidence,
+                suggested_improvement="Focus on split-stepping as your opponent makes contact — this gives you a head start on movement",
+                category="movement",
+                occurrences=late_count,
+                severity=min(0.5 + late_count * 0.08, 0.9),
+                last_seen_point=self._point_counter,
+            )
+            self._insights[key] = insight
+            return insight
+        return None
+
+    def _detect_movement_inefficiency(self, recovery_x_positions: list[float]) -> Optional[CoachingInsight]:
+        """Detect not returning to center after shots."""
+        off_center_count = 0
+        for x in recovery_x_positions:
+            if abs(x) > 2.0:  # More than 2m from center
+                off_center_count += 1
+
+        if off_center_count >= 4:
+            key = "movement_inefficiency"
+            evidence = [
+                f"Failed to recover to center {off_center_count} times",
+                "Leaving court open for opponent's shot",
+            ]
+            insight = CoachingInsight(
+                session_id=self.session_id,
+                player_id=self.player_id,
+                observed_issue=f"Not recovering to center court ({off_center_count} times)",
+                supporting_evidence=evidence,
+                suggested_improvement="After each shot, take 2-3 recovery steps toward the center mark — this covers more court",
+                category="movement",
+                occurrences=off_center_count,
+                severity=min(0.4 + off_center_count * 0.06, 0.85),
+                last_seen_point=self._point_counter,
+            )
+            self._insights[key] = insight
+            return insight
+        return None
+
+    def reset(self) -> None:
+        """Reset all state for a new session."""
+        self._insights.clear()
+        self._point_counter = 0
+        self._error_log.clear()
+        self._shot_depths.clear()
+        self._recovery_positions.clear()
+        self._positioning_log.clear()

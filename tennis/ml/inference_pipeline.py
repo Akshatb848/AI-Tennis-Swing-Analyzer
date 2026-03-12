@@ -1,15 +1,20 @@
 """
 Inference Pipeline — Orchestrated per-frame ML inference.
 Coordinates BallNet, PlayerNet, CourtNet, and ShotNet in production.
+Supports both pre-computed detections and raw frame analysis.
 """
 
 from __future__ import annotations
+import time
 from dataclasses import dataclass, field
 from typing import Optional
+
+import numpy as np
 
 from tennis.ml.ball_tracker import BallTracker
 from tennis.ml.player_detector import PlayerDetector
 from tennis.ml.court_detector import CourtDetector
+from tennis.ml.frame_analyzer import FrameAnalyzer, FrameDetections
 from tennis.models.events import BallEvent, BoundingBox, PlayerEvent
 
 
@@ -31,17 +36,22 @@ class InferencePipeline:
     This Python version provides the same interface for cloud processing.
     """
 
-    def __init__(self, session_id: str = "", fps: float = 30.0):
+    def __init__(self, session_id: str = "", fps: float = 30.0, models_dir: str = "./models"):
         self.session_id = session_id
         self.fps = fps
         self.ball_tracker = BallTracker(fps=fps)
         self.player_detector = PlayerDetector(max_players=4)
         self.court_detector = CourtDetector()
+        self.frame_analyzer: Optional[FrameAnalyzer] = None
+        self.models_dir = models_dir
         self.frame_count = 0
         self.is_initialized = False
+        self._total_latency_ms = 0.0
 
     def initialize(self):
         """Load models and prepare for inference."""
+        self.frame_analyzer = FrameAnalyzer(models_dir=self.models_dir)
+        self.frame_analyzer.warmup()
         self.is_initialized = True
 
     def process_frame(
@@ -94,16 +104,64 @@ class InferencePipeline:
 
         return result
 
+    def process_raw_frame(
+        self,
+        frame: np.ndarray,
+        timestamp_ms: int = 0,
+    ) -> FrameResult:
+        """
+        Process a raw video frame through the full pipeline.
+
+        Runs FrameAnalyzer to extract detections, then passes them
+        through the existing tracking and scoring logic.
+
+        Args:
+            frame: BGR numpy array (H, W, 3)
+            timestamp_ms: Frame timestamp in milliseconds
+
+        Returns:
+            FrameResult with all tracking results
+        """
+        if not self.is_initialized:
+            self.initialize()
+
+        start = time.perf_counter()
+
+        # Run ML inference / heuristic detection
+        detections: FrameDetections = self.frame_analyzer.analyze_frame(
+            frame,
+            frame_number=self.frame_count + 1,
+            timestamp_ms=timestamp_ms,
+        )
+
+        # Feed detections into existing pipeline
+        result = self.process_frame(
+            ball_detection=detections.ball_bbox,
+            player_detections=detections.player_bboxes if detections.player_bboxes else None,
+            court_keypoints=detections.court_keypoints if detections.court_keypoints else None,
+        )
+
+        result.latency_ms = (time.perf_counter() - start) * 1000
+        self._total_latency_ms += result.latency_ms
+
+        return result
+
     def reset(self):
         self.ball_tracker.reset()
         self.player_detector.reset()
         self.court_detector.reset()
         self.frame_count = 0
+        self._total_latency_ms = 0.0
 
     def get_stats(self) -> dict:
+        avg_latency = (
+            self._total_latency_ms / self.frame_count
+            if self.frame_count > 0 else 0.0
+        )
         return {
             "frames_processed": self.frame_count,
             "active_players": self.player_detector.get_active_players(),
             "court_calibrated": self.court_detector.is_calibrated,
             "ball_tracking": self.ball_tracker.kalman.is_tracking,
+            "avg_latency_ms": round(avg_latency, 2),
         }

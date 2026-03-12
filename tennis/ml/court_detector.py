@@ -5,8 +5,20 @@ Wraps CourtNet model with RANSAC homography and continuous recalibration.
 
 from __future__ import annotations
 import math
+import logging
 from typing import Optional
+
+import numpy as np
+
 from tennis.models.events import Point2D
+
+logger = logging.getLogger(__name__)
+
+try:
+    import cv2
+    HAS_OPENCV = True
+except ImportError:
+    HAS_OPENCV = False
 
 
 # 14 court keypoints in normalized court coordinates (0-1)
@@ -78,23 +90,54 @@ class CourtDetector:
         return self.homography
 
     def _estimate_homography(self, image_pts: list[tuple[float, float]]) -> HomographyMatrix:
-        """Estimate homography from image keypoints to court coords (simplified DLT)."""
-        # In production, uses OpenCV findHomography with RANSAC
-        # Here: simplified affine approximation from first 4 points
+        """Estimate homography from image keypoints to court coords.
+
+        Uses cv2.findHomography with RANSAC when OpenCV is available,
+        falls back to simplified affine approximation otherwise.
+        """
         if len(image_pts) < 4:
             return self.homography
 
-        # Court corners in meters (standard court)
-        court_pts = [(-4.115, -11.885), (4.115, -11.885), (-4.115, 11.885), (4.115, 11.885)]
+        # Standard court corners in meters (singles court)
+        # Origin at center, width = 8.23m, length = 23.77m
+        court_pts_ref = [
+            (-4.115, -11.885), (4.115, -11.885),
+            (-4.115, 11.885), (4.115, 11.885),
+        ]
+        n_pts = min(len(image_pts), len(court_pts_ref))
 
-        # Simple perspective transform approximation
-        h = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-        if len(image_pts) >= 4:
-            ix, iy = image_pts[0]
-            cx, cy = court_pts[0]
-            sx = (court_pts[1][0] - court_pts[0][0]) / max(image_pts[1][0] - image_pts[0][0], 1)
-            sy = (court_pts[2][1] - court_pts[0][1]) / max(image_pts[2][1] - image_pts[0][1], 1)
-            h = [[sx, 0, cx - sx * ix], [0, sy, cy - sy * iy], [0, 0, 1]]
+        if HAS_OPENCV and n_pts >= 4:
+            # Use real RANSAC homography
+            src = np.array(image_pts[:n_pts], dtype=np.float64)
+            dst = np.array(court_pts_ref[:n_pts], dtype=np.float64)
+            H, mask = cv2.findHomography(src, dst, cv2.RANSAC, 5.0)
+            if H is not None:
+                hm = HomographyMatrix(H.tolist())
+                hm.is_valid = True
+                # Calculate reprojection error
+                if mask is not None:
+                    inliers = mask.ravel().astype(bool)
+                    if inliers.any():
+                        src_in = src[inliers]
+                        dst_in = dst[inliers]
+                        projected = cv2.perspectiveTransform(
+                            src_in.reshape(-1, 1, 2), H,
+                        ).reshape(-1, 2)
+                        hm.reprojection_error = float(
+                            np.mean(np.linalg.norm(projected - dst_in, axis=1))
+                        )
+                logger.debug(
+                    "Homography estimated via RANSAC, reproj error=%.3f",
+                    hm.reprojection_error,
+                )
+                return hm
+
+        # Fallback: simplified affine approximation from first 4 points
+        ix, iy = image_pts[0]
+        cx, cy = court_pts_ref[0]
+        sx = (court_pts_ref[1][0] - court_pts_ref[0][0]) / max(image_pts[1][0] - image_pts[0][0], 1)
+        sy = (court_pts_ref[2][1] - court_pts_ref[0][1]) / max(image_pts[2][1] - image_pts[0][1], 1)
+        h = [[sx, 0, cx - sx * ix], [0, sy, cy - sy * iy], [0, 0, 1]]
 
         hm = HomographyMatrix(h)
         hm.is_valid = True

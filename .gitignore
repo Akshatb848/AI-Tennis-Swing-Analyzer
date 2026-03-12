@@ -8,6 +8,7 @@ build/
 .eggs/
 *.so
 .env
+.env.local
 .python-version
 venv/
 data/uploads/*
@@ -17,3 +18,15 @@ models/*.joblib
 *.log
 .coverage
 htmlcov/
+
+# Frontend
+node_modules/
+.next/
+tennis/frontend/node_modules/
+tennis/frontend/.next/
+
+# Uploads & test artifacts
+uploads/
+test_output.txt
+*.mp4
+*.mp
