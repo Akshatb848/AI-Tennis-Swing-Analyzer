@@ -83,6 +83,14 @@ class CaptureSession(BaseModel):
     mode: SessionMode = SessionMode.MATCH
     status: SessionStatus = SessionStatus.SETUP
 
+    # ── Match Setup ─────────────────────────────────────
+    match_type: str = "singles"          # practice_rally, singles, doubles
+    environment: str = "outdoor"          # indoor, outdoor
+    player_handedness: list[str] = Field(
+        default_factory=lambda: ["auto", "auto"],
+        description="Per-player handedness: left, right, or auto"
+    )
+
     # ── Players ──────────────────────────────────────────
     player_ids: list[str] = Field(default_factory=list)
     player_names: list[str] = Field(default_factory=list)

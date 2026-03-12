@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CoachingPriority(str, Enum):
@@ -111,6 +111,8 @@ class DetectedFlaw(BaseModel):
 
 class CoachingFeedback(BaseModel):
     """AI-generated coaching feedback for a session."""
+    model_config = ConfigDict(protected_namespaces=())
+    
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
     player_id: str
@@ -219,3 +221,38 @@ class PlayerProgressReport(BaseModel):
     progress_summary: str = ""
     next_milestone: str = ""
     estimated_ntrp_change: Optional[float] = None
+
+
+class CoachingInsight(BaseModel):
+    """Evidence-based coaching insight from continuous analysis.
+
+    Each insight includes:
+    - What was observed (the issue)
+    - Supporting evidence from match data
+    - Suggested improvement action
+    """
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str = ""
+    player_id: str = ""
+
+    # ── The observation ──────────────────────────────────
+    observed_issue: str = Field(
+        default="",
+        description="Clear, specific description of the observed issue"
+    )
+    supporting_evidence: list[str] = Field(
+        default_factory=list,
+        description="Data points supporting the observation"
+    )
+    suggested_improvement: str = Field(
+        default="",
+        description="Actionable improvement recommendation"
+    )
+
+    # ── Metadata ─────────────────────────────────────────
+    category: str = ""  # positioning, shot_selection, movement, consistency, tactics
+    occurrences: int = 1
+    severity: float = Field(default=0.5, ge=0.0, le=1.0)
+    first_seen_point: int = 0
+    last_seen_point: int = 0
+    detected_at: datetime = Field(default_factory=datetime.utcnow)
