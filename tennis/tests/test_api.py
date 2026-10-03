@@ -4,6 +4,7 @@ Tests for FastAPI endpoints — Integration tests for the TennisIQ API.
 
 import pytest
 from fastapi.testclient import TestClient
+
 from tennis.api.app import app
 
 

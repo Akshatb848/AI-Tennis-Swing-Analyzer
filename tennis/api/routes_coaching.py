@@ -3,7 +3,7 @@ Coaching routes — AI coaching feedback, swing analysis, weekly goals.
 """
 
 from __future__ import annotations
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 
 from tennis.engine.coaching_engine import CoachingEngine

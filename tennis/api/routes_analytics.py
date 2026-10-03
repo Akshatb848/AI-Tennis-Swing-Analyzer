@@ -10,10 +10,11 @@ Provides:
 """
 
 from __future__ import annotations
+
 from fastapi import APIRouter, HTTPException
 
-from tennis.engine.stats_calculator import StatsCalculator
 from tennis.engine.coaching_engine import ContinuousCoach
+from tennis.engine.stats_calculator import StatsCalculator
 
 router = APIRouter()
 

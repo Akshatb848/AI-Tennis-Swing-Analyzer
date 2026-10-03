@@ -4,9 +4,8 @@ Wraps CourtNet model with RANSAC homography and continuous recalibration.
 """
 
 from __future__ import annotations
-import math
+
 import logging
-from typing import Optional
 
 import numpy as np
 
@@ -32,7 +31,7 @@ COURT_KEYPOINT_NAMES = [
 
 class HomographyMatrix:
     """3x3 homography matrix for image → court coordinate transform."""
-    def __init__(self, matrix: Optional[list[list[float]]] = None):
+    def __init__(self, matrix: list[list[float]] | None = None):
         self.matrix = matrix or [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
         self.is_valid = matrix is not None
         self.reprojection_error = 0.0

@@ -5,9 +5,8 @@ No motivational language. No coaching hype. Only data-driven findings.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
 from collections import Counter
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -126,8 +125,8 @@ class ReviewEngine:
     def analyze_match(
         self,
         session_summary: dict,
-        player_stats: Optional[dict] = None,
-        swing_data: Optional[list[dict]] = None,
+        player_stats: dict | None = None,
+        swing_data: list[dict] | None = None,
     ) -> MatchReview:
         """Generate complete match review from session data."""
         review = MatchReview(

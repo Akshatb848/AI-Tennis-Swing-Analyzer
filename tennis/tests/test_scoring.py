@@ -3,9 +3,13 @@ Tests for Tennis Scoring Engine — Full ITF rules verification.
 """
 
 import pytest
+
 from tennis.engine.scoring import ScoringEngine
 from tennis.models.match import (
-    MatchConfig, MatchFormat, MatchStatus, PointOutcomeType, PointScore,
+    MatchConfig,
+    MatchFormat,
+    PointOutcomeType,
+    PointScore,
 )
 
 

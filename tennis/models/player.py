@@ -7,7 +7,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -40,17 +39,17 @@ class PlayerProfile(BaseModel):
     """Full player profile with biographical and play-style data."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    email: Optional[str] = None
-    avatar_url: Optional[str] = None
+    email: str | None = None
+    avatar_url: str | None = None
     handedness: Handedness = Handedness.RIGHT
     backhand_type: str = Field(default="two_handed", description="one_handed | two_handed")
     play_style: PlayStyle = PlayStyle.UNKNOWN
     skill_level: SkillLevel = SkillLevel.INTERMEDIATE
-    ntrp_rating: Optional[float] = Field(default=None, ge=1.0, le=7.0)
-    height_cm: Optional[float] = None
-    weight_kg: Optional[float] = None
-    age: Optional[int] = None
-    years_playing: Optional[int] = None
+    ntrp_rating: float | None = Field(default=None, ge=1.0, le=7.0)
+    height_cm: float | None = None
+    weight_kg: float | None = None
+    age: int | None = None
+    years_playing: int | None = None
 
     # ── Historical aggregates ────────────────────────────
     total_matches: int = 0
@@ -100,7 +99,7 @@ class PlayerSessionStats(BaseModel):
     """Per-session aggregated statistics for a player."""
     player_id: str
     session_id: str
-    match_id: Optional[str] = None
+    match_id: str | None = None
 
     # ── Serve stats ──────────────────────────────────────
     total_serve_points: int = 0

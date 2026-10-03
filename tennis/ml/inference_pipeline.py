@@ -5,16 +5,16 @@ Supports both pre-computed detections and raw frame analysis.
 """
 
 from __future__ import annotations
+
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
 from tennis.ml.ball_tracker import BallTracker
-from tennis.ml.player_detector import PlayerDetector
 from tennis.ml.court_detector import CourtDetector
 from tennis.ml.frame_analyzer import FrameAnalyzer, FrameDetections
+from tennis.ml.player_detector import PlayerDetector
 from tennis.models.events import BallEvent, BoundingBox, PlayerEvent
 
 
@@ -22,7 +22,7 @@ from tennis.models.events import BallEvent, BoundingBox, PlayerEvent
 class FrameResult:
     """Result of processing a single frame."""
     frame_number: int
-    ball_event: Optional[BallEvent] = None
+    ball_event: BallEvent | None = None
     player_events: list[PlayerEvent] = field(default_factory=list)
     court_calibrated: bool = False
     latency_ms: float = 0.0
@@ -42,7 +42,7 @@ class InferencePipeline:
         self.ball_tracker = BallTracker(fps=fps)
         self.player_detector = PlayerDetector(max_players=4)
         self.court_detector = CourtDetector()
-        self.frame_analyzer: Optional[FrameAnalyzer] = None
+        self.frame_analyzer: FrameAnalyzer | None = None
         self.models_dir = models_dir
         self.frame_count = 0
         self.is_initialized = False
@@ -56,10 +56,10 @@ class InferencePipeline:
 
     def process_frame(
         self,
-        ball_detection: Optional[BoundingBox] = None,
-        player_detections: Optional[list[BoundingBox]] = None,
-        player_keypoints: Optional[list[list[tuple[float, float, float]]]] = None,
-        court_keypoints: Optional[list[tuple[float, float, float]]] = None,
+        ball_detection: BoundingBox | None = None,
+        player_detections: list[BoundingBox] | None = None,
+        player_keypoints: list[list[tuple[float, float, float]]] | None = None,
+        court_keypoints: list[tuple[float, float, float]] | None = None,
     ) -> FrameResult:
         """
         Process a single frame through all models.

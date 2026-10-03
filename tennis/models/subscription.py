@@ -7,7 +7,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -102,16 +101,16 @@ class UserEntitlement(BaseModel):
     user_id: str
     tier: SubscriptionTier = SubscriptionTier.FREE
     status: SubscriptionStatus = SubscriptionStatus.ACTIVE
-    payment_provider: Optional[PaymentProvider] = None
+    payment_provider: PaymentProvider | None = None
 
     # ── Billing ──────────────────────────────────────────
     started_at: datetime = Field(default_factory=datetime.utcnow)
-    expires_at: Optional[datetime] = None
-    trial_ends_at: Optional[datetime] = None
+    expires_at: datetime | None = None
+    trial_ends_at: datetime | None = None
     price_monthly: float = 0.0
     currency: str = "USD"
-    apple_receipt_id: Optional[str] = None
-    stripe_subscription_id: Optional[str] = None
+    apple_receipt_id: str | None = None
+    stripe_subscription_id: str | None = None
 
     # ── Usage tracking ───────────────────────────────────
     sessions_used_this_month: int = 0
@@ -154,9 +153,9 @@ class SubscriptionPlan(BaseModel):
     price_yearly: float
     features: list[str]
     is_popular: bool = False
-    apple_product_id: Optional[str] = None
-    google_product_id: Optional[str] = None
-    stripe_price_id: Optional[str] = None
+    apple_product_id: str | None = None
+    google_product_id: str | None = None
+    stripe_price_id: str | None = None
 
 
 # ── Pre-defined plans ────────────────────────────────────────────────────────

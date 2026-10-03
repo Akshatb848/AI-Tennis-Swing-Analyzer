@@ -5,10 +5,9 @@ Detects common technique mistakes and generates frame-specific improvement annot
 Uses motion intensity changes and position data from Player + Ball agents.
 """
 from __future__ import annotations
+
 import logging
 import math
-import random
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

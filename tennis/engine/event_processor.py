@@ -12,8 +12,6 @@ Handles:
 from __future__ import annotations
 
 import math
-import uuid
-from typing import Optional
 
 from tennis.engine.shot_classifier import ShotClassifier
 from tennis.models.events import (
@@ -32,7 +30,6 @@ from tennis.models.match import (
     ShotDetail,
     ShotType,
 )
-
 
 # ── Court Geometry (ITF standard dimensions in meters) ───────────────────────
 
@@ -205,7 +202,7 @@ class EventProcessor:
         # Tracking state
         self._last_hit_frame: int = 0
         self._last_bounce_frame: int = 0
-        self._last_hit_player: Optional[str] = None
+        self._last_hit_player: str | None = None
         self._rally_active: bool = False
         self._shot_count: int = 0
 
@@ -213,14 +210,14 @@ class EventProcessor:
         self._player_ids: list[str] = []
 
         # Shot detection state for trajectory analysis
-        self._prev_trajectory_angle: Optional[float] = None
+        self._prev_trajectory_angle: float | None = None
         self._trajectory_speeds: list[float] = []  # recent speeds for spike detection
 
     def process_ball_event(
         self,
         event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
-    ) -> Optional[dict]:
+        player_events: list[PlayerEvent] | None = None,
+    ) -> dict | None:
         """
         Process a ball event and return any tennis events generated.
         
@@ -261,7 +258,7 @@ class EventProcessor:
 
         return result if result else None
 
-    def _process_bounce(self, event: BallEvent) -> Optional[LineCallEvent]:
+    def _process_bounce(self, event: BallEvent) -> LineCallEvent | None:
         """Process a ball bounce and generate a line call."""
         if not event.position_court:
             return None
@@ -317,7 +314,7 @@ class EventProcessor:
     def _process_hit(
         self,
         event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
+        player_events: list[PlayerEvent] | None = None,
     ) -> None:
         """Process a ball hit event with trajectory-based detection."""
         self._shot_count += 1
@@ -375,8 +372,8 @@ class EventProcessor:
         self,
         event: BallEvent,
         outcome_type: PointOutcomeType,
-        winner_id: Optional[str] = None,
-    ) -> Optional[RallyEvent]:
+        winner_id: str | None = None,
+    ) -> RallyEvent | None:
         """End the current rally and produce a RallyEvent."""
         if not self._rally_active:
             return None
@@ -426,7 +423,7 @@ class EventProcessor:
     def _classify_shot(
         self,
         event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
+        player_events: list[PlayerEvent] | None = None,
     ) -> tuple[ShotType, float]:
         """Classify the shot type using full trajectory + pose analysis."""
         # Extract pose from nearest player
@@ -471,7 +468,7 @@ class EventProcessor:
 
     def _find_nearest_player(
         self, ball_event: BallEvent, player_events: list[PlayerEvent]
-    ) -> Optional[PlayerEvent]:
+    ) -> PlayerEvent | None:
         """Find the player closest to the ball position."""
         if not ball_event.position_court:
             return player_events[0] if player_events else None
@@ -491,8 +488,8 @@ class EventProcessor:
     def _determine_hitting_player(
         self,
         ball_event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
-    ) -> Optional[str]:
+        player_events: list[PlayerEvent] | None = None,
+    ) -> str | None:
         """Determine which player hit the ball.
 
         Uses two signals:
@@ -526,7 +523,7 @@ class EventProcessor:
 
         return closest_id or expected
 
-    def _alternate_player(self) -> Optional[str]:
+    def _alternate_player(self) -> str | None:
         """Get the expected next hitter via alternation logic."""
         if not self._last_hit_player or len(self._player_ids) < 2:
             return self._last_hit_player
@@ -535,7 +532,7 @@ class EventProcessor:
                 return pid
         return self._last_hit_player
 
-    def _get_opponent(self, player_id: Optional[str]) -> Optional[str]:
+    def _get_opponent(self, player_id: str | None) -> str | None:
         """Get opponent player ID using tracked player roster."""
         if not player_id:
             return None

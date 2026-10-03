@@ -7,7 +7,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -97,19 +96,19 @@ class CaptureSession(BaseModel):
 
     # ── Court & Match ────────────────────────────────────
     court_surface: CourtSurface = CourtSurface.HARD
-    match_config: Optional[MatchConfig] = None
-    match_id: Optional[str] = None
-    venue_name: Optional[str] = None
-    court_number: Optional[str] = None
+    match_config: MatchConfig | None = None
+    match_id: str | None = None
+    venue_name: str | None = None
+    court_number: str | None = None
 
     # ── Device & Calibration ─────────────────────────────
-    device: Optional[DeviceInfo] = None
-    calibration: Optional[CameraCalibration] = None
+    device: DeviceInfo | None = None
+    calibration: CameraCalibration | None = None
     calibration_state: CalibrationState = CalibrationState.NOT_STARTED
 
     # ── Video ────────────────────────────────────────────
-    video_url: Optional[str] = None
-    video_local_path: Optional[str] = None
+    video_url: str | None = None
+    video_local_path: str | None = None
     video_duration_seconds: float = 0.0
     total_frames: int = 0
     fps: float = 30.0
@@ -119,17 +118,17 @@ class CaptureSession(BaseModel):
     # ── Processing ───────────────────────────────────────
     processing_mode: str = "on_device"  # on_device | cloud | hybrid
     processing_progress: float = 0.0
-    processing_started_at: Optional[datetime] = None
-    processing_completed_at: Optional[datetime] = None
+    processing_started_at: datetime | None = None
+    processing_completed_at: datetime | None = None
 
     # ── Metadata ─────────────────────────────────────────
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     tags: list[str] = Field(default_factory=list)
-    notes: Optional[str] = None
+    notes: str | None = None
 
     # ── Subscription ─────────────────────────────────────
-    user_id: Optional[str] = None
+    user_id: str | None = None
     subscription_tier: str = "free"
 
 
@@ -150,8 +149,7 @@ class SessionTimeline(BaseModel):
             "payload": payload
         })
         self.event_count = len(self.events)
-        if timestamp_ms > self.duration_ms:
-            self.duration_ms = timestamp_ms
+        self.duration_ms = max(self.duration_ms, timestamp_ms)
 
 
 class SessionListResponse(BaseModel):

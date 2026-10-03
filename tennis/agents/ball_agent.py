@@ -5,9 +5,9 @@ Uses yellow-green HSV mask + HoughCircles to detect the ball each frame,
 then connects detections into trajectories and estimates speed.
 """
 from __future__ import annotations
+
 import logging
 import math
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

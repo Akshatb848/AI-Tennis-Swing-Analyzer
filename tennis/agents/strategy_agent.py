@@ -5,8 +5,8 @@ Evaluates tactical choices: baseline vs net play, crosscourt vs down-the-line pa
 serve placement patterns, and overall court management.
 """
 from __future__ import annotations
+
 import logging
-import math
 
 logger = logging.getLogger(__name__)
 

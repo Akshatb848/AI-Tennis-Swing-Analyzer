@@ -3,11 +3,13 @@ Subscription routes — Tier management, feature flags, entitlements.
 """
 
 from __future__ import annotations
-from fastapi import APIRouter, HTTPException
+
+from fastapi import APIRouter
 
 from tennis.models.subscription import (
-    SUBSCRIPTION_PLANS, TIER_FEATURES,
-    SubscriptionTier, UserEntitlement,
+    SUBSCRIPTION_PLANS,
+    SubscriptionTier,
+    UserEntitlement,
 )
 
 router = APIRouter()

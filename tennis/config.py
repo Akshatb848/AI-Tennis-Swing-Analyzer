@@ -2,10 +2,10 @@
 Platform configuration — environment-driven settings for all modules.
 """
 
-import os
 from enum import Enum
-from pydantic_settings import BaseSettings
+
 from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Environment(str, Enum):

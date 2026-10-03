@@ -3,11 +3,12 @@ Tests for ML Pipeline — ball tracker, player detector, court detector, inferen
 """
 
 import pytest
+
 from tennis.ml.ball_tracker import BallTracker, KalmanState
-from tennis.ml.player_detector import PlayerDetector, COCO_KEYPOINT_NAMES
-from tennis.ml.court_detector import CourtDetector, HomographyMatrix
+from tennis.ml.court_detector import CourtDetector
 from tennis.ml.inference_pipeline import InferencePipeline
 from tennis.ml.model_specs import MODEL_REGISTRY, get_model_spec, get_total_parameters
+from tennis.ml.player_detector import COCO_KEYPOINT_NAMES, PlayerDetector
 from tennis.models.events import BoundingBox
 
 

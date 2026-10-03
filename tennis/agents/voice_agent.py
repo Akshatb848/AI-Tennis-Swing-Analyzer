@@ -6,6 +6,7 @@ These events are played back through the browser's Web Speech API or
 an optional TTS service (OpenAI TTS if OPENAI_API_KEY is set).
 """
 from __future__ import annotations
+
 import logging
 
 logger = logging.getLogger(__name__)

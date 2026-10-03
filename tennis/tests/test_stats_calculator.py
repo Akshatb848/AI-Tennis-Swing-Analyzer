@@ -2,9 +2,8 @@
 Tests for Stats Calculator — stat computation verification.
 """
 
-import pytest
-from tennis.engine.stats_calculator import StatsCalculator
 from tennis.engine.scoring import ScoringEngine
+from tennis.engine.stats_calculator import StatsCalculator
 from tennis.models.match import MatchConfig, PointOutcomeType
 
 

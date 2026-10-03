@@ -4,16 +4,16 @@ Production pipeline for tennis match video processing.
 """
 
 from __future__ import annotations
-import os
-import uuid
+
 import asyncio
-import subprocess
 import json
 import logging
-from enum import Enum
+import os
+import subprocess
+import uuid
 from dataclasses import dataclass, field
-from typing import Optional
 from datetime import datetime
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class VideoSegment:
     segment_type: str = "point"   # point, game, set, highlight
     start_time_ms: int = 0
     end_time_ms: int = 0
-    point_number: Optional[int] = None
+    point_number: int | None = None
     score_at_start: str = ""
     score_at_end: str = ""
     tags: list[str] = field(default_factory=list)
@@ -104,8 +104,8 @@ class VideoJob:
     status: VideoStatus = VideoStatus.UPLOADED
     progress: float = 0.0
     created_at: datetime = field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
     duration_seconds: float = 0.0
     fps: float = 30.0
     width: int = 1920
@@ -114,7 +114,7 @@ class VideoJob:
     transcode_outputs: dict[str, str] = field(default_factory=dict)
 
 
-def _probe_with_ffprobe(source_path: str) -> Optional[dict]:
+def _probe_with_ffprobe(source_path: str) -> dict | None:
     """Probe video metadata using ffprobe if available."""
     try:
         cmd = [
@@ -134,7 +134,7 @@ def _probe_with_ffprobe(source_path: str) -> Optional[dict]:
     return None
 
 
-def _probe_with_opencv(source_path: str) -> Optional[dict]:
+def _probe_with_opencv(source_path: str) -> dict | None:
     """Probe video metadata using OpenCV as fallback."""
     if not HAS_OPENCV:
         return None
@@ -285,14 +285,14 @@ class VideoProcessor:
                 else:
                     logger.warning("ffmpeg transcode failed for %s profile", profile.name)
                     job.transcode_outputs[profile.name] = job.source_path
-            except (FileNotFoundError, asyncio.TimeoutError):
+            except (TimeoutError, FileNotFoundError):
                 # ffmpeg not available — use source directly
                 logger.info("ffmpeg not available, using source file for %s profile", profile.name)
                 job.transcode_outputs[profile.name] = job.source_path
 
             job.progress = 0.1 + (0.5 * (i + 1) / len(TRANSCODE_PROFILES))
 
-    async def _segment_by_points(self, job: VideoJob, scoring_timeline: Optional[list] = None):
+    async def _segment_by_points(self, job: VideoJob, scoring_timeline: list | None = None):
         """Segment video into individual points using scoring timeline."""
         if scoring_timeline:
             # Use real scoring timeline
@@ -341,7 +341,7 @@ class VideoProcessor:
             logger.warning("Could not write HLS manifest: %s", e)
         job.transcode_outputs["manifest"] = manifest_path
 
-    def get_job(self, job_id: str) -> Optional[VideoJob]:
+    def get_job(self, job_id: str) -> VideoJob | None:
         return self._jobs.get(job_id)
 
     def extract_frames(

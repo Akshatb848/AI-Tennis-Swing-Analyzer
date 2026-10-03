@@ -4,17 +4,19 @@ Recording routes — Guided match setup, recording control, and video ingest.
 
 from __future__ import annotations
 
-import os
-import uuid
-import asyncio
 import logging
-from typing import Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File, BackgroundTasks
+import os
 
-from tennis.engine.recording import (
-    RecordingSession, MatchSetupConfig, MatchType, Environment, Handedness,
-)
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+
 from tennis.engine.live_pipeline import LivePipeline, SessionResult
+from tennis.engine.recording import (
+    Environment,
+    Handedness,
+    MatchSetupConfig,
+    MatchType,
+    RecordingSession,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def setup_recording(
     match_type: str = "singles",
     environment: str = "outdoor",
-    player_names: Optional[list[str]] = None,
+    player_names: list[str] | None = None,
     court_surface: str = "hard",
 ):
     """

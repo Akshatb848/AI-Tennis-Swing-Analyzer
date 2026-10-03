@@ -19,17 +19,15 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
-from tennis.engine.recording import RecordingSession, MatchSetupConfig, RecordingState
-from tennis.ml.inference_pipeline import InferencePipeline, FrameResult
-from tennis.video.capture import VideoCapture, CapturedFrame, VideoMetadata
+from tennis.engine.recording import MatchSetupConfig, RecordingSession, RecordingState
+from tennis.ml.inference_pipeline import FrameResult, InferencePipeline
+from tennis.video.capture import VideoCapture, VideoMetadata
 from tennis.video.frame_buffer import FrameBuffer, FrameEvent
 
 logger = logging.getLogger(__name__)
@@ -47,7 +45,7 @@ class FrameProcessingResult:
     processing_latency_ms: float = 0.0
     rally_active: bool = False
     current_score: str = ""
-    line_call: Optional[dict] = None
+    line_call: dict | None = None
 
 
 @dataclass
@@ -59,7 +57,7 @@ class SessionResult:
     points_detected: int = 0
     line_calls: int = 0
     avg_latency_ms: float = 0.0
-    video_metadata: Optional[VideoMetadata] = None
+    video_metadata: VideoMetadata | None = None
     summary: dict = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
 
@@ -74,7 +72,7 @@ class LivePipeline:
 
     def __init__(
         self,
-        config: Optional[MatchSetupConfig] = None,
+        config: MatchSetupConfig | None = None,
         target_fps: float = 30.0,
         buffer_seconds: float = 4.0,
         models_dir: str = "./models",
@@ -85,17 +83,17 @@ class LivePipeline:
         self.models_dir = models_dir
 
         # Components (created on start)
-        self._inference: Optional[InferencePipeline] = None
-        self._recording: Optional[RecordingSession] = None
-        self._capture: Optional[VideoCapture] = None
-        self._buffer: Optional[FrameBuffer] = None
+        self._inference: InferencePipeline | None = None
+        self._recording: RecordingSession | None = None
+        self._capture: VideoCapture | None = None
+        self._buffer: FrameBuffer | None = None
 
         self._is_running = False
         self._total_frames = 0
         self._total_latency_ms = 0.0
         self._errors: list[str] = []
 
-    def start(self, config: Optional[MatchSetupConfig] = None):
+    def start(self, config: MatchSetupConfig | None = None):
         """Initialize all pipeline components for a new session."""
         if config:
             self.config = config
@@ -161,7 +159,7 @@ class LivePipeline:
             try:
                 self.process_frame(captured_frame.frame, captured_frame.timestamp_ms)
             except Exception as e:
-                self._errors.append(f"Frame {captured_frame.frame_number}: {str(e)}")
+                self._errors.append(f"Frame {captured_frame.frame_number}: {e!s}")
                 logger.error("Error processing frame %d: %s",
                              captured_frame.frame_number, e)
 
@@ -232,7 +230,7 @@ class LivePipeline:
 
         return result
 
-    def stop(self, metadata: Optional[VideoMetadata] = None) -> SessionResult:
+    def stop(self, metadata: VideoMetadata | None = None) -> SessionResult:
         """Stop the pipeline and return session results."""
         self._is_running = False
 
@@ -304,9 +302,9 @@ class LivePipeline:
         return self._total_frames
 
     @property
-    def recording(self) -> Optional[RecordingSession]:
+    def recording(self) -> RecordingSession | None:
         return self._recording
 
     @property
-    def buffer(self) -> Optional[FrameBuffer]:
+    def buffer(self) -> FrameBuffer | None:
         return self._buffer

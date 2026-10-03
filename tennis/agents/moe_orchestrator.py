@@ -9,18 +9,16 @@ The orchestrator returns a unified MoEResult containing all coaching data.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
-from .court_agent import CourtAgent
 from .ball_agent import BallAgent
-from .player_agent import PlayerAgent
 from .biomechanics_agent import BiomechanicsAgent
-from .strategy_agent import StrategyAgent
 from .coaching_agent import CoachingAgent
+from .court_agent import CourtAgent
+from .player_agent import PlayerAgent
+from .strategy_agent import StrategyAgent
 from .voice_agent import VoiceAgent
 
 logger = logging.getLogger(__name__)

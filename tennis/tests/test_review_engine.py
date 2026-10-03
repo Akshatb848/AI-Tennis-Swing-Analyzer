@@ -1,6 +1,5 @@
 """Tests for the post-match review engine."""
 
-import pytest
 from tennis.engine.review_engine import ReviewEngine
 
 

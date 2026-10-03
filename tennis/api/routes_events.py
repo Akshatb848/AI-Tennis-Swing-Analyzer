@@ -3,14 +3,17 @@ Event routes — Ingest CV events and query event streams.
 """
 
 from __future__ import annotations
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Query
 
-from tennis.models.events import (
-    BallEvent, PlayerEvent, EventBatch, LineCallEvent,
-    ChallengeStatus, LineCallVerdict,
-)
 from tennis.engine.event_processor import EventProcessor
+from tennis.models.events import (
+    BallEvent,
+    ChallengeStatus,
+    EventBatch,
+    LineCallEvent,
+    PlayerEvent,
+)
 
 router = APIRouter()
 

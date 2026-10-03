@@ -2,9 +2,8 @@
 Tests for Event Processor — CV event → tennis semantics verification.
 """
 
-import pytest
-from tennis.engine.event_processor import EventProcessor, CourtGeometry
-from tennis.models.events import BallEvent, EventType, Point2D, BoundingBox
+from tennis.engine.event_processor import CourtGeometry, EventProcessor
+from tennis.models.events import BallEvent, BoundingBox, EventType, Point2D
 
 
 class TestCourtGeometry:

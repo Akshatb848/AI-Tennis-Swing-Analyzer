@@ -8,9 +8,6 @@ identical output shape for zero-change dashboard rendering.
 from __future__ import annotations
 
 import logging
-from typing import Optional
-
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +43,7 @@ def get_available_sessions() -> list[dict]:
     return sessions
 
 
-def get_session_data(session_id: str) -> Optional[dict]:
+def get_session_data(session_id: str) -> dict | None:
     """Get data for a specific session in dashboard format."""
     return _completed_sessions.get(session_id)
 
@@ -62,7 +59,7 @@ class DashboardDataProvider:
     def __init__(self, api_base_url: str = "http://localhost:8000/api/v1"):
         self.api_base_url = api_base_url
 
-    def get_match_data(self, session_id: Optional[str] = None) -> Optional[dict]:
+    def get_match_data(self, session_id: str | None = None) -> dict | None:
         """
         Get match data in the same shape as generate_sample_data().
 
@@ -89,7 +86,7 @@ class DashboardDataProvider:
 
         return None
 
-    def _fetch_from_api(self, session_id: str) -> Optional[dict]:
+    def _fetch_from_api(self, session_id: str) -> dict | None:
         """Fetch session data via the REST API."""
         try:
             with httpx.Client(timeout=10) as client:

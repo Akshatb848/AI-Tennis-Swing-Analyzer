@@ -3,9 +3,10 @@ Video routes — Upload, processing, highlights, and overlay management.
 """
 
 from __future__ import annotations
+
 import uuid
-from typing import Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 router = APIRouter()
 

@@ -4,16 +4,15 @@ Auth routes — JWT + Google OAuth authentication for TennisIQ.
 
 from __future__ import annotations
 
-import uuid
 import hashlib
-import secrets
 import logging
+import secrets
+import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
+import jwt
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import jwt
 
 from tennis.config import settings
 
@@ -156,8 +155,8 @@ async def google_auth(req: GoogleAuthRequest):
     """
     try:
         # Try to verify with google-auth library
-        from google.oauth2 import id_token as google_id_token
         from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token as google_id_token
 
         client_id = settings.GOOGLE_CLIENT_ID
         if not client_id:

@@ -4,14 +4,12 @@ Upload routes — Chunked video file upload endpoint + byte-range video streamin
 
 from __future__ import annotations
 
-import os
-import uuid
 import logging
+import uuid
 from pathlib import Path
-from typing import Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import StreamingResponse, Response
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
 
 from tennis.config import settings
 
@@ -43,7 +41,7 @@ async def upload_video(
     file: UploadFile = File(...),
     chunk_index: int = Form(0),
     total_chunks: int = Form(1),
-    upload_id: Optional[str] = Form(None),
+    upload_id: str | None = Form(None),
 ):
     """
     Upload a video file (single-shot or chunked).
@@ -164,7 +162,7 @@ async def stream_video(upload_id: str, request: Request):
     """
     # Try in-memory lookup first
     record = _uploads.get(upload_id)
-    file_path: Optional[Path] = None
+    file_path: Path | None = None
 
     if record and record.get("final_path"):
         file_path = Path(record["final_path"])

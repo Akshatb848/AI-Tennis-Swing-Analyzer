@@ -1,8 +1,7 @@
 """Tests for avatar renderer — pose-to-avatar mapping."""
 
-import pytest
-from tennis.video.avatar_renderer import AvatarRenderer, AvatarStyle, AvatarFrame
-from tennis.ml.pose_analyzer import PoseAnalyzer, SwingPhase, SwingType
+from tennis.ml.pose_analyzer import PoseAnalyzer
+from tennis.video.avatar_renderer import AvatarRenderer, AvatarStyle
 
 
 class TestAvatarRenderer:

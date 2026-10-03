@@ -4,11 +4,15 @@ Wraps PlayerNet model with DeepSORT-style tracking.
 """
 
 from __future__ import annotations
-from typing import Optional
-from tennis.models.events import (
-    BoundingBox, PlayerEvent, PlayerPose, PoseKeypoint, EventType, Point2D,
-)
 
+from tennis.models.events import (
+    BoundingBox,
+    EventType,
+    PlayerEvent,
+    PlayerPose,
+    Point2D,
+    PoseKeypoint,
+)
 
 COCO_KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",
@@ -25,14 +29,14 @@ class PlayerTrack:
         self.bbox = bbox
         self.frames_seen = 1
         self.frames_missed = 0
-        self.pose: Optional[PlayerPose] = None
-        self.court_position: Optional[Point2D] = None
+        self.pose: PlayerPose | None = None
+        self.court_position: Point2D | None = None
 
     @property
     def is_active(self) -> bool:
         return self.frames_missed < 30
 
-    def update(self, bbox: BoundingBox, pose: Optional[PlayerPose] = None):
+    def update(self, bbox: BoundingBox, pose: PlayerPose | None = None):
         self.bbox = bbox
         self.frames_seen += 1
         self.frames_missed = 0
@@ -54,7 +58,7 @@ class PlayerDetector:
     def process_frame(
         self,
         detections: list[BoundingBox],
-        keypoints_list: Optional[list[list[tuple[float, float, float]]]] = None,
+        keypoints_list: list[list[tuple[float, float, float]]] | None = None,
         frame_number: int = 0,
         session_id: str = "",
         fps: float = 30.0,
@@ -101,7 +105,7 @@ class PlayerDetector:
         self.tracks = {pid: t for pid, t in self.tracks.items() if t.is_active}
         return events
 
-    def _match_detection(self, det: BoundingBox) -> Optional[PlayerTrack]:
+    def _match_detection(self, det: BoundingBox) -> PlayerTrack | None:
         """Match detection to existing track via IoU."""
         best_iou = 0.3
         best_track = None

@@ -1,8 +1,10 @@
 """Tests for the automated line calling system."""
 
-import pytest
 from tennis.engine.line_calling import (
-    LineCallingSystem, LineCall, CallVerdict, CallConfidence, ChallengeStatus,
+    CallConfidence,
+    CallVerdict,
+    ChallengeStatus,
+    LineCallingSystem,
 )
 
 

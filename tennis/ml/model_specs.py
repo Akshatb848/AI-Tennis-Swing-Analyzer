@@ -9,6 +9,7 @@ All models are optimized for Apple Neural Engine (ANE) deployment:
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 

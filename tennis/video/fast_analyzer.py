@@ -17,13 +17,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +72,12 @@ class AnalysisJob:
     video_path: str = ""
     match_type: str = "singles"
     created_at: datetime = field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
     state: JobState = JobState.QUEUED
     stage_index: int = 0
     progress: float = 0.0
-    error: Optional[str] = None
+    error: str | None = None
 
     # Video metadata (filled from actual video)
     duration_seconds: float = 0.0
@@ -96,7 +94,7 @@ class AnalysisJob:
 _jobs: dict[str, AnalysisJob] = {}
 
 
-def get_job(job_id: str) -> Optional[AnalysisJob]:
+def get_job(job_id: str) -> AnalysisJob | None:
     return _jobs.get(job_id)
 
 
@@ -168,7 +166,7 @@ class FastVideoAnalyzer:
                 asyncio.get_event_loop().run_in_executor(None, fn),
                 timeout=self.STAGE_TIMEOUT,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("Stage %d timed out — continuing", idx)
         except Exception as exc:
             logger.warning("Stage %d error (%s) — continuing", idx, exc)

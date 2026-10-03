@@ -8,10 +8,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
-
 
 # ── Enums ────────────────────────────────────────────────────────────────────
 
@@ -115,16 +113,16 @@ class ShotDetail(BaseModel):
     """Detail of a single shot within a point."""
     shot_type: ShotType
     player_id: str
-    speed_mph: Optional[float] = None
-    speed_kph: Optional[float] = None
-    spin_rpm: Optional[float] = None
-    placement_zone: Optional[CourtZone] = None
-    depth_meters: Optional[float] = None
-    net_clearance_cm: Optional[float] = None
+    speed_mph: float | None = None
+    speed_kph: float | None = None
+    spin_rpm: float | None = None
+    placement_zone: CourtZone | None = None
+    depth_meters: float | None = None
+    net_clearance_cm: float | None = None
     timestamp_ms: int
     frame_number: int
-    court_position_x: Optional[float] = None
-    court_position_y: Optional[float] = None
+    court_position_x: float | None = None
+    court_position_y: float | None = None
 
 
 class PointOutcome(BaseModel):
@@ -136,7 +134,7 @@ class PointOutcome(BaseModel):
     server_id: str
     winner_id: str
     outcome_type: PointOutcomeType
-    last_shot: Optional[ShotDetail] = None
+    last_shot: ShotDetail | None = None
     shot_sequence: list[ShotDetail] = Field(default_factory=list)
     rally_length: int = 0
     score_before: dict = Field(default_factory=dict)
@@ -156,12 +154,12 @@ class GameState(BaseModel):
     points_player1: PointScore = PointScore.ZERO
     points_player2: PointScore = PointScore.ZERO
     is_deuce: bool = False
-    advantage_player_id: Optional[str] = None
+    advantage_player_id: str | None = None
     is_tiebreak: bool = False
     tiebreak_points_player1: int = 0
     tiebreak_points_player2: int = 0
     is_complete: bool = False
-    winner_id: Optional[str] = None
+    winner_id: str | None = None
 
 
 class SetState(BaseModel):
@@ -170,9 +168,9 @@ class SetState(BaseModel):
     games_player1: int = 0
     games_player2: int = 0
     is_tiebreak: bool = False
-    current_game: Optional[GameState] = None
+    current_game: GameState | None = None
     is_complete: bool = False
-    winner_id: Optional[str] = None
+    winner_id: str | None = None
     games: list[GameState] = Field(default_factory=list)
 
 
@@ -187,15 +185,15 @@ class MatchState(BaseModel):
     status: MatchStatus = MatchStatus.NOT_STARTED
     sets_player1: int = 0
     sets_player2: int = 0
-    current_set: Optional[SetState] = None
+    current_set: SetState | None = None
     sets: list[SetState] = Field(default_factory=list)
     points_timeline: list[PointOutcome] = Field(default_factory=list)
     total_points_played: int = 0
-    server_id: Optional[str] = None
-    first_server_id: Optional[str] = None
-    winner_id: Optional[str] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    server_id: str | None = None
+    first_server_id: str | None = None
+    winner_id: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     duration_minutes: float = 0.0
 
     @property
@@ -238,7 +236,7 @@ class MatchSummary(BaseModel):
     score_display: str
     surface: CourtSurface
     match_format: MatchFormat
-    winner_name: Optional[str] = None
+    winner_name: str | None = None
     duration_minutes: float = 0.0
     total_points: int = 0
-    started_at: Optional[datetime] = None
+    started_at: datetime | None = None

@@ -10,10 +10,10 @@ Computes per-player and per-match statistics including:
 """
 
 from __future__ import annotations
-from typing import Optional
-from tennis.models.match import MatchState, PointOutcome, PointOutcomeType, ShotType
-from tennis.models.player import PlayerSessionStats, PlayerComparison
+
 from tennis.models.events import RallyEvent
+from tennis.models.match import MatchState, PointOutcome, PointOutcomeType, ShotType
+from tennis.models.player import PlayerComparison, PlayerSessionStats
 
 
 class StatsCalculator:
@@ -23,7 +23,7 @@ class StatsCalculator:
         self,
         player_id: str,
         match: MatchState,
-        rallies: Optional[list[RallyEvent]] = None,
+        rallies: list[RallyEvent] | None = None,
     ) -> PlayerSessionStats:
         stats = PlayerSessionStats(player_id=player_id, session_id=match.id, match_id=match.id)
         for pt in match.points_timeline:
@@ -361,7 +361,7 @@ class StatsCalculator:
                     areas.append({
                         "area": f"Over-reliance on {zone} placement",
                         "metric": f"{pct:.0f}% of shots to {zone} (expected ~{expected_pct:.0f}%)",
-                        "recommendation": f"Add variety — distribute shots more evenly to keep opponent guessing",
+                        "recommendation": "Add variety — distribute shots more evenly to keep opponent guessing",
                         "priority": 0.5,
                     })
 

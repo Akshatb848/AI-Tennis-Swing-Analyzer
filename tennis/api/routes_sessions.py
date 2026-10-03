@@ -3,15 +3,19 @@ Session routes — CRUD operations for capture sessions.
 """
 
 from __future__ import annotations
+
 import uuid
 from datetime import datetime
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Query
 
-from tennis.models.session import (
-    CaptureSession, SessionMode, SessionStatus, SessionListResponse,
-)
 from tennis.models.match import MatchConfig
+from tennis.models.session import (
+    CaptureSession,
+    SessionListResponse,
+    SessionMode,
+    SessionStatus,
+)
 
 router = APIRouter()
 
@@ -24,7 +28,7 @@ async def create_session(
     mode: SessionMode = SessionMode.MATCH,
     player_names: list[str] = ["Player 1", "Player 2"],
     court_surface: str = "hard",
-    venue_name: Optional[str] = None,
+    venue_name: str | None = None,
 ):
     """Create a new capture session."""
     session = CaptureSession(
@@ -43,8 +47,8 @@ async def create_session(
 async def list_sessions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    mode: Optional[SessionMode] = None,
-    status: Optional[SessionStatus] = None,
+    mode: SessionMode | None = None,
+    status: SessionStatus | None = None,
 ):
     """List all sessions with filtering and pagination."""
     items = list(_sessions.values())

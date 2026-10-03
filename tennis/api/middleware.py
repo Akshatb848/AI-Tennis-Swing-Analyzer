@@ -4,12 +4,14 @@ Production-grade middleware stack for the TennisIQ API.
 """
 
 from __future__ import annotations
+
+import logging
 import time
 import uuid
-import logging
 from collections import defaultdict
-from typing import Optional, Callable
-from fastapi import Request, Response, HTTPException
+from collections.abc import Callable
+
+from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("tennisiq.api")
@@ -52,7 +54,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         raise HTTPException(status_code=401, detail="Invalid or missing authentication token")
 
-    def _validate_token(self, token: str) -> Optional[dict]:
+    def _validate_token(self, token: str) -> dict | None:
         """Validate JWT token. In production: verify signature with public key."""
         # Placeholder — in production, decode JWT and verify with Apple/Firebase
         if token == "test_token":

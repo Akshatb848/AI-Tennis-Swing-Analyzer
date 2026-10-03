@@ -7,6 +7,7 @@ Takes outputs from all expert agents and generates:
 - Performance summary narrative
 """
 from __future__ import annotations
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -200,7 +201,7 @@ class CoachingAgent:
         elif intensity > 0.35:
             return f"Moderate movement intensity ({speed:.1f} km/h). Work on quicker first-step reactions."
         else:
-            return f"Limited court movement detected. Focus on split-step timing and explosive first steps."
+            return "Limited court movement detected. Focus on split-step timing and explosive first steps."
 
     def _tactical_narrative(self, strategy) -> str:
         cr = strategy.get("crosscourt_rate", 0.5)

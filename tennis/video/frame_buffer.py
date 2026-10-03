@@ -10,11 +10,10 @@ Provides:
 
 from __future__ import annotations
 
-import threading
 import logging
+import threading
 from collections import deque
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -49,7 +48,7 @@ class FrameBuffer:
         self._lock = threading.RLock()  # re-entrant: get_session_summary() reads buffer_duration_seconds under the lock
         self._total_frames = 0
 
-    def add_frame(self, frame_number: int, frame: np.ndarray, event: Optional[FrameEvent] = None):
+    def add_frame(self, frame_number: int, frame: np.ndarray, event: FrameEvent | None = None):
         """Add a frame to the buffer."""
         with self._lock:
             self._frames.append((frame_number, frame))
@@ -62,7 +61,7 @@ class FrameBuffer:
         with self._lock:
             self._events.append(event)
 
-    def get_frame(self, frame_number: int) -> Optional[np.ndarray]:
+    def get_frame(self, frame_number: int) -> np.ndarray | None:
         """Get a specific frame by number. Returns None if not in buffer."""
         with self._lock:
             for fn, frame in self._frames:
@@ -87,7 +86,7 @@ class FrameBuffer:
             center_frame + half_window,
         )
 
-    def get_latest_frame(self) -> Optional[tuple[int, np.ndarray]]:
+    def get_latest_frame(self) -> tuple[int, np.ndarray] | None:
         """Get the most recent frame."""
         with self._lock:
             if self._frames:

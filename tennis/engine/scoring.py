@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import copy
 from datetime import datetime
-from typing import Optional
 
 from tennis.models.match import (
     GameState,
@@ -31,7 +30,6 @@ from tennis.models.match import (
     SetState,
     ShotDetail,
 )
-
 
 # ── Point score progression ──────────────────────────────────────────────────
 
@@ -53,7 +51,7 @@ class ScoringEngine:
         print(engine.match.score_display)
     """
 
-    def __init__(self, config: Optional[MatchConfig] = None):
+    def __init__(self, config: MatchConfig | None = None):
         self.config = config or MatchConfig()
         self.match = MatchState(config=self.config)
         self._history: list[MatchState] = []  # For undo
@@ -66,7 +64,7 @@ class ScoringEngine:
         player2_id: str,
         player1_name: str = "Player 1",
         player2_name: str = "Player 2",
-        first_server_id: Optional[str] = None,
+        first_server_id: str | None = None,
     ) -> MatchState:
         """Initialize a new match."""
         self.match.player1_id = player1_id
@@ -86,8 +84,8 @@ class ScoringEngine:
         self,
         winner_id: str,
         outcome_type: PointOutcomeType = PointOutcomeType.WINNER,
-        last_shot: Optional[ShotDetail] = None,
-        shot_sequence: Optional[list[ShotDetail]] = None,
+        last_shot: ShotDetail | None = None,
+        shot_sequence: list[ShotDetail] | None = None,
         timestamp_start_ms: int = 0,
         timestamp_end_ms: int = 0,
     ) -> PointOutcome:
@@ -195,7 +193,7 @@ class ScoringEngine:
 
         return point_outcome
 
-    def undo_last_point(self) -> Optional[MatchState]:
+    def undo_last_point(self) -> MatchState | None:
         """Undo the last scored point (for challenge corrections)."""
         if not self._history:
             return None
@@ -207,7 +205,7 @@ class ScoringEngine:
 
     # ── Regular game scoring ─────────────────────────────────────────────────
 
-    def _score_regular_point(self, winner_id: str) -> tuple[bool, Optional[str]]:
+    def _score_regular_point(self, winner_id: str) -> tuple[bool, str | None]:
         """Score a point in a regular (non-tiebreak) game. Returns (game_over, winner_id)."""
         game = self.match.current_set.current_game
         is_p1 = winner_id == self.match.player1_id
@@ -275,7 +273,7 @@ class ScoringEngine:
 
     # ── Tiebreak scoring ─────────────────────────────────────────────────────
 
-    def _score_tiebreak_point(self, winner_id: str) -> tuple[bool, Optional[str]]:
+    def _score_tiebreak_point(self, winner_id: str) -> tuple[bool, str | None]:
         """Score a point in a tiebreak. Returns (game_over, winner_id)."""
         game = self.match.current_set.current_game
         is_p1 = winner_id == self.match.player1_id
@@ -347,7 +345,7 @@ class ScoringEngine:
             return True
         return False
 
-    def _check_set_complete(self) -> tuple[bool, Optional[str]]:
+    def _check_set_complete(self) -> tuple[bool, str | None]:
         """Check if the current set is complete. Returns (complete, winner_id)."""
         cs = self.match.current_set
         p1 = cs.games_player1
@@ -508,6 +506,6 @@ class ScoringEngine:
         """Check if match is completed."""
         return self.match.status == MatchStatus.COMPLETED
 
-    def get_winner(self) -> Optional[str]:
+    def get_winner(self) -> str | None:
         """Get match winner ID, or None if still in progress."""
         return self.match.winner_id
