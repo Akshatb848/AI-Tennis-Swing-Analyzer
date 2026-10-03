@@ -13,6 +13,7 @@ from enum import Enum
 from tennis.engine.event_processor import EventProcessor
 from tennis.engine.scoring import ScoringEngine
 from tennis.models.match import MatchConfig, MatchMode
+from tennis.timeutil import utcnow
 
 
 class MatchType(str, Enum):
@@ -186,7 +187,7 @@ class RecordingSession:
             return {"status": "error", "message": "Setup required before recording"}
 
         self.state = RecordingState.RECORDING
-        self.started_at = datetime.utcnow()
+        self.started_at = utcnow()
         self.frame_count = 0
         return {"status": "recording", "session_id": self.id}
 
@@ -196,7 +197,7 @@ class RecordingSession:
             return {"status": "error", "message": "Not currently recording"}
 
         self.state = RecordingState.PROCESSING
-        self.stopped_at = datetime.utcnow()
+        self.stopped_at = utcnow()
 
         # Close any open rally
         if self._rally_active:
@@ -301,7 +302,6 @@ class RecordingSession:
         # Update scoring engine
         if self._scoring_engine and point.winner_id:
             self._scoring_engine.score_point(point.winner_id)
-            state = self._scoring_engine.get_match_state()
             point.score_after = self._scoring_engine.get_score_display()
 
         self.points.append(point)
@@ -313,7 +313,6 @@ class RecordingSession:
         if not self._scoring_engine:
             return
 
-        state = self._scoring_engine.get_match_state()
         # Build games from point groupings
         current_game_points: list[SegmentedPoint] = []
         game_num = 0

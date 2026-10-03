@@ -5,7 +5,6 @@ Session routes — CRUD operations for capture sessions.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -16,6 +15,7 @@ from tennis.models.session import (
     SessionMode,
     SessionStatus,
 )
+from tennis.timeutil import utcnow
 
 router = APIRouter()
 
@@ -26,7 +26,7 @@ _sessions: dict[str, CaptureSession] = {}
 @router.post("/", response_model=CaptureSession, status_code=201)
 async def create_session(
     mode: SessionMode = SessionMode.MATCH,
-    player_names: list[str] = ["Player 1", "Player 2"],
+    player_names: list[str] = ["Player 1", "Player 2"],  # noqa: B006 - FastAPI deep-copies parameter defaults per request; default is published in the OpenAPI schema
     court_surface: str = "hard",
     venue_name: str | None = None,
 ):
@@ -79,11 +79,11 @@ async def update_session_status(session_id: str, status: SessionStatus):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     session.status = status
-    session.updated_at = datetime.utcnow()
+    session.updated_at = utcnow()
     if status == SessionStatus.RECORDING:
-        session.processing_started_at = datetime.utcnow()
+        session.processing_started_at = utcnow()
     elif status == SessionStatus.COMPLETED:
-        session.processing_completed_at = datetime.utcnow()
+        session.processing_completed_at = utcnow()
     return {"id": session_id, "status": status}
 
 

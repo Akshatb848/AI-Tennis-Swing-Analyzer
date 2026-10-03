@@ -11,6 +11,7 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 from tennis.models.match import CourtSurface, MatchConfig
+from tennis.timeutil import utcnow
 
 
 class SessionMode(str, Enum):
@@ -122,8 +123,8 @@ class CaptureSession(BaseModel):
     processing_completed_at: datetime | None = None
 
     # ── Metadata ─────────────────────────────────────────
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     tags: list[str] = Field(default_factory=list)
     notes: str | None = None
 

@@ -129,7 +129,7 @@ class MoEOrchestrator:
             logger.info("Agent %s completed in %.2fs", name, time.monotonic() - t)
             return out
         except Exception as exc:
-            logger.exception("Agent %s failed: %s", name, exc)
+            logger.exception("Agent %s failed", name)
             return {"error": str(exc), "agent": name}
 
     def _build_frame_overlays(self, result: MoEResult) -> list:

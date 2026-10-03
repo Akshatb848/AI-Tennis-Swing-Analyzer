@@ -10,6 +10,8 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from tennis.timeutil import utcnow
+
 
 class CoachingPriority(str, Enum):
     CRITICAL = "critical"     # Injury risk or major flaw
@@ -92,7 +94,7 @@ class SwingAnalysis(BaseModel):
     detected_flaws: list[DetectedFlaw] = Field(default_factory=list)
 
     timestamp_ms: int = 0
-    analyzed_at: datetime = Field(default_factory=datetime.utcnow)
+    analyzed_at: datetime = Field(default_factory=utcnow)
 
 
 class DetectedFlaw(BaseModel):
@@ -152,7 +154,7 @@ class CoachingFeedback(BaseModel):
     )
 
     # ── Metadata ─────────────────────────────────────────
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=utcnow)
     model_version: str = "1.0"
     confidence: float = 0.0
 
@@ -195,7 +197,7 @@ class WeeklyGoal(BaseModel):
         default_factory=list, description="Session IDs that informed this goal"
     )
     notes: str = ""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class PlayerProgressReport(BaseModel):
@@ -254,4 +256,4 @@ class CoachingInsight(BaseModel):
     severity: float = Field(default=0.5, ge=0.0, le=1.0)
     first_seen_point: int = 0
     last_seen_point: int = 0
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    detected_at: datetime = Field(default_factory=utcnow)

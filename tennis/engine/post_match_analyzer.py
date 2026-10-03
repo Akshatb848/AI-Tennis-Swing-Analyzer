@@ -110,10 +110,6 @@ class PostMatchAnalyzer:
         first_half = points[:mid]
         second_half = points[mid:]
 
-        # Rally length as proxy for movement intensity
-        fh_lengths = [p.get("rally_length", 0) for p in first_half if p.get("winner") == player_id]
-        sh_lengths = [p.get("rally_length", 0) for p in second_half if p.get("winner") == player_id]
-
         fh_wins = sum(1 for p in first_half if p.get("winner") == player_id)
         sh_wins = sum(1 for p in second_half if p.get("winner") == player_id)
 
@@ -138,7 +134,6 @@ class PostMatchAnalyzer:
         if not points:
             return ca
 
-        player_points = [p for p in points if p.get("winner") == player_id]
 
         # Win rate consistency across chunks
         chunk_size = max(5, len(points) // 4)

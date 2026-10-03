@@ -8,6 +8,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import ClassVar
 
 
 class HighlightType(str, Enum):
@@ -75,7 +76,7 @@ class HighlightGenerator:
     """
 
     # Base excitement scores by outcome type
-    BASE_SCORES = {
+    BASE_SCORES: ClassVar[dict[str, float]] = {
         "ace": 0.7,
         "winner": 0.6,
         "double_fault": 0.3,
@@ -88,7 +89,7 @@ class HighlightGenerator:
     }
 
     # Pressure multipliers
-    PRESSURE_BONUS = {
+    PRESSURE_BONUS: ClassVar[dict[str, float]] = {
         "match_point": 0.5,
         "set_point": 0.35,
         "break_point": 0.25,
@@ -110,7 +111,7 @@ class HighlightGenerator:
         rally_length: int = 1,
         shot_speed_mph: float | None = None,
         score_at_time: str = "",
-        pressure_context: list[str] = None,
+        pressure_context: list[str] | None = None,
         is_challenge: bool = False,
     ) -> Highlight:
         """Score a point and determine if it's highlight-worthy."""

@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 try:
     import cv2
-    import numpy as np
     HAS_CV2 = True
 except ImportError:
     HAS_CV2 = False

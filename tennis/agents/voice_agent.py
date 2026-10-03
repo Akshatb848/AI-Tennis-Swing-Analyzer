@@ -73,7 +73,6 @@ class VoiceAgent:
         """
         bio = context.get("biomechanics", {})
         coaching = context.get("coaching", {})
-        ball = context.get("ball", {})
         duration = context.get("duration_seconds", 30.0)
 
         frame_annotations = bio.get("frame_annotations", [])

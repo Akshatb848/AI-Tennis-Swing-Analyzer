@@ -158,7 +158,7 @@ class LivePipeline:
         async for captured_frame in self._capture.frames():
             try:
                 self.process_frame(captured_frame.frame, captured_frame.timestamp_ms)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - per-frame fault isolation: error is recorded and processing continues
                 self._errors.append(f"Frame {captured_frame.frame_number}: {e!s}")
                 logger.error("Error processing frame %d: %s",
                              captured_frame.frame_number, e)

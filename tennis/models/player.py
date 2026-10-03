@@ -10,6 +10,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from tennis.timeutil import utcnow
+
 
 class Handedness(str, Enum):
     RIGHT = "right"
@@ -61,8 +63,8 @@ class PlayerProfile(BaseModel):
     avg_unforced_errors_per_match: float = 0.0
 
     # ── Metadata ─────────────────────────────────────────
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class PlayerStyleEmbedding(BaseModel):
@@ -91,7 +93,7 @@ class PlayerStyleEmbedding(BaseModel):
     shot_variety_score: float = Field(default=0.5, ge=0.0, le=1.0)
     pressure_performance: float = Field(default=0.5, ge=0.0, le=1.0)
     endurance_index: float = Field(default=0.5, ge=0.0, le=1.0)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     sessions_analyzed: int = 0
 
 
@@ -153,7 +155,7 @@ class PlayerSessionStats(BaseModel):
     break_point_save_pct: float = 0.0
 
     # ── Computed at end of session ───────────────────────
-    computed_at: datetime = Field(default_factory=datetime.utcnow)
+    computed_at: datetime = Field(default_factory=utcnow)
 
 
 class PlayerComparison(BaseModel):

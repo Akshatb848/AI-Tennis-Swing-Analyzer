@@ -12,7 +12,8 @@ import logging
 import os
 import sqlite3
 import threading
-from datetime import datetime
+
+from tennis.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ class SessionStore:
             court_surface,
             json.dumps(match_config or {}),
             json.dumps(summary or {}),
-            datetime.utcnow().isoformat(),
+            utcnow().isoformat(),
         ))
         conn.commit()
 
@@ -155,7 +156,7 @@ class SessionStore:
         """Update session status."""
         self._conn.execute(
             "UPDATE sessions SET status = ?, updated_at = ? WHERE id = ?",
-            (status, datetime.utcnow().isoformat(), session_id),
+            (status, utcnow().isoformat(), session_id),
         )
         self._conn.commit()
 
@@ -163,7 +164,7 @@ class SessionStore:
         """Save session summary (post-match results)."""
         self._conn.execute(
             "UPDATE sessions SET summary = ?, status = 'completed', updated_at = ? WHERE id = ?",
-            (json.dumps(summary), datetime.utcnow().isoformat(), session_id),
+            (json.dumps(summary), utcnow().isoformat(), session_id),
         )
         self._conn.commit()
 

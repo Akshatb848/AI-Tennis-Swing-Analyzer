@@ -12,7 +12,6 @@ Data Source:
 - Fallback to sample data with "Demo Data" banner
 """
 
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -157,7 +156,7 @@ else:
 data = None
 if available_sessions:
     # Try to load real data
-    selected_label = list(session_options.keys())[0]
+    selected_label = next(iter(session_options))
     selected_session_id = session_options[selected_label]
     if selected_session_id != "__demo__":
         data = provider.get_match_data(selected_session_id)
@@ -269,7 +268,7 @@ if "Match Overview" in view:
     fig_radar = go.Figure()
     fig_radar.add_trace(go.Scatterpolar(r=p1_vals + [p1_vals[0]], theta=categories + [categories[0]], fill='toself', name=data['match']['player1'], line_color='#00ff88', fillcolor='rgba(0,255,136,0.15)'))
     fig_radar.add_trace(go.Scatterpolar(r=p2_vals + [p2_vals[0]], theta=categories + [categories[0]], fill='toself', name=data['match']['player2'], line_color='#ff6b6b', fillcolor='rgba(255,107,107,0.15)'))
-    fig_radar.update_layout(polar=dict(bgcolor='#0d1117', radialaxis=dict(visible=True, range=[0, 1], gridcolor='#2a2a4a')), paper_bgcolor='#0a0a0a', font_color='#c9d1d9', height=400, showlegend=True)
+    fig_radar.update_layout(polar={'bgcolor': '#0d1117', 'radialaxis': {'visible': True, 'range': [0, 1], 'gridcolor': '#2a2a4a'}}, paper_bgcolor='#0a0a0a', font_color='#c9d1d9', height=400, showlegend=True)
     st.plotly_chart(fig_radar, use_container_width=True)
     st.caption("Demo data: radar values are fixed placeholders, not computed from this match.")
 
@@ -337,7 +336,7 @@ elif "Shot Analysis" in view:
         sd = data['swing_distribution']
         fig_pie = go.Figure(data=[go.Pie(
             labels=list(sd.keys()), values=list(sd.values()),
-            hole=0.4, marker=dict(colors=['#00ff88', '#4dff88', '#ff6b6b', '#ffa500']),
+            hole=0.4, marker={'colors': ['#00ff88', '#4dff88', '#ff6b6b', '#ffa500']},
         )])
         fig_pie.update_layout(paper_bgcolor='#0a0a0a', font_color='#c9d1d9', height=350)
         st.plotly_chart(fig_pie, use_container_width=True)
@@ -413,7 +412,7 @@ elif "Trends" in view:
     st.info("Demo data: this view shows randomly generated, illustrative trends. "
             "Multi-match history is not yet tracked.")
 
-    dates = pd.date_range(end=datetime.now(), periods=12, freq='W')
+    dates = pd.date_range(end=pd.Timestamp.now(), periods=12, freq='W')
     trend_df = pd.DataFrame({
         'Date': dates,
         'First Serve %': np.random.normal(65, 5, 12).clip(40, 85),

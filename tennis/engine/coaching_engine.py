@@ -11,7 +11,7 @@ This is where TennisIQ exceeds SwingVision:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from tennis.models.coaching import (
     CoachingFeedback,
@@ -25,6 +25,7 @@ from tennis.models.coaching import (
     WeeklyGoal,
 )
 from tennis.models.player import PlayerProfile, PlayerSessionStats, PlayerStyleEmbedding
+from tennis.timeutil import utcnow
 
 # ── Reference profiles for comparison ────────────────────────────────────────
 
@@ -79,7 +80,6 @@ class CoachingEngine:
         if not sessions:
             return emb
 
-        latest = sessions[-1] if sessions else None
         avg_stats = self._average_stats(sessions)
 
         # Component scores
@@ -112,7 +112,7 @@ class CoachingEngine:
             embedding.append(0.0)
         emb.embedding = embedding[:64]
         emb.sessions_analyzed = len(sessions)
-        emb.updated_at = datetime.utcnow()
+        emb.updated_at = utcnow()
         return emb
 
     def analyze_swing(
@@ -218,7 +218,7 @@ class CoachingEngine:
         current_goal: WeeklyGoal | None = None,
     ) -> WeeklyGoal:
         """Generate an adaptive weekly goal."""
-        now = datetime.utcnow()
+        now = utcnow()
         goal = WeeklyGoal(
             player_id=player.id,
             primary_goal="",
@@ -319,7 +319,6 @@ class CoachingEngine:
         return max(1.0 - ue / 30.0, 0.0)
 
     def _calc_net_tendency(self, stats: dict) -> float:
-        nw = stats.get("net_points_won", 0)
         nt = stats.get("net_points_total", 1)
         return min(nt / 20.0, 1.0)
 

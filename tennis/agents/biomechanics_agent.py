@@ -11,14 +11,6 @@ import math
 
 logger = logging.getLogger(__name__)
 
-try:
-    import cv2
-    import numpy as np
-    HAS_CV2 = True
-except ImportError:
-    HAS_CV2 = False
-
-
 # Known biomechanical issues with their overlay colors and coaching text
 ISSUE_LIBRARY = [
     {

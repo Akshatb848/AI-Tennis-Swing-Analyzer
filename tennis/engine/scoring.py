@@ -16,7 +16,6 @@ Implements full ITF rules including:
 from __future__ import annotations
 
 import copy
-from datetime import datetime
 
 from tennis.models.match import (
     GameState,
@@ -30,6 +29,7 @@ from tennis.models.match import (
     SetState,
     ShotDetail,
 )
+from tennis.timeutil import utcnow
 
 # ── Point score progression ──────────────────────────────────────────────────
 
@@ -74,7 +74,7 @@ class ScoringEngine:
         self.match.first_server_id = first_server_id or player1_id
         self.match.server_id = self.match.first_server_id
         self.match.status = MatchStatus.IN_PROGRESS
-        self.match.started_at = datetime.utcnow()
+        self.match.started_at = utcnow()
 
         # Start first set and first game
         self._start_new_set()
@@ -147,7 +147,7 @@ class ScoringEngine:
                 if self._check_match_complete():
                     self.match.status = MatchStatus.COMPLETED
                     self.match.winner_id = set_winner
-                    self.match.completed_at = datetime.utcnow()
+                    self.match.completed_at = utcnow()
                     if self.match.started_at:
                         delta = self.match.completed_at - self.match.started_at
                         self.match.duration_minutes = delta.total_seconds() / 60
@@ -413,9 +413,7 @@ class ScoringEngine:
 
         if returner_score == PointScore.FORTY and server_score != PointScore.ADVANTAGE:
             return True
-        if game.advantage_player_id == returner:
-            return True
-        return False
+        return game.advantage_player_id == returner
 
     def _is_set_point(self, potential_winner_id: str) -> bool:
         """Check if winning this point would win a set."""

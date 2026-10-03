@@ -205,7 +205,7 @@ def print_model_summary():
     print(f"\n{'='*70}")
     print(f"TennisIQ ML Model Stack — Total: {total_params/1e6:.1f}M params, {total_latency:.0f}ms/frame")
     print(f"{'='*70}")
-    for name, spec in MODEL_REGISTRY.items():
+    for spec in MODEL_REGISTRY.values():
         print(f"\n  {spec.name} v{spec.version}")
         print(f"    Task: {spec.task}")
         print(f"    Backbone: {spec.backbone}")

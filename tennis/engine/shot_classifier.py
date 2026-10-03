@@ -131,11 +131,13 @@ class ShotClassifier:
                   trajectory_angle: float,
                   player_position: Point2D | None) -> bool:
         """Detect smash/overhead conditions."""
-        if ball_height_m and ball_height_m > self.SMASH_MIN_HEIGHT:
-            if trajectory_angle < -20:  # downward trajectory
-                if player_position and abs(player_position.y) < self.SMASH_MAX_NET_DIST:
-                    return True
-        return False
+        return bool(
+            ball_height_m
+            and ball_height_m > self.SMASH_MIN_HEIGHT
+            and trajectory_angle < -20  # downward trajectory
+            and player_position
+            and abs(player_position.y) < self.SMASH_MAX_NET_DIST
+        )
 
     def _is_slice(self, trajectory_angle: float, speed_mph: float,
                   pose: PlayerPose | None) -> bool:

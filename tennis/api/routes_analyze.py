@@ -256,9 +256,8 @@ def _find_video(upload_id: str, filename: str) -> str | None:
     # Look for files starting with upload_id or named filename
     for f in os.listdir(UPLOAD_DIR):
         full = os.path.join(UPLOAD_DIR, f)
-        if f.startswith(upload_id) or f == filename:
-            if os.path.isfile(full):
-                return full
+        if (f.startswith(upload_id) or f == filename) and os.path.isfile(full):
+            return full
     return None
 
 

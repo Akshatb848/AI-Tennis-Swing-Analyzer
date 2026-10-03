@@ -525,7 +525,6 @@ class BallTracker:
 
     def _compute_current_speed(self) -> ShotSpeedRecord:
         """Compute current ball speed from Kalman state."""
-        speed_px = self.kalman.speed_pixels_per_frame
         return self.speed_calc.compute_speed(
             dx_px=self.kalman.vx / self.fps,
             dy_px=self.kalman.vy / self.fps,

@@ -10,6 +10,7 @@ import time
 import uuid
 from collections import defaultdict
 from collections.abc import Callable
+from typing import ClassVar
 
 from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -27,13 +28,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
     In production, validates against Apple Sign-In / Firebase Auth.
     """
 
-    PUBLIC_PATHS = {"/", "/health", "/docs", "/redoc", "/openapi.json", "/api/v1/subscriptions/plans"}
+    PUBLIC_PATHS: ClassVar[set[str]] = {"/", "/health", "/docs", "/redoc", "/openapi.json", "/api/v1/subscriptions/plans"}
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         path = request.url.path
 
         # Skip auth for public paths
-        if path in self.PUBLIC_PATHS or path.startswith("/docs") or path.startswith("/redoc"):
+        if path in self.PUBLIC_PATHS or path.startswith(("/docs", "/redoc")):
             return await call_next(request)
 
         # Extract token
@@ -79,7 +80,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     - Default (unauthed): 20 req/min
     """
 
-    TIER_LIMITS = {
+    TIER_LIMITS: ClassVar[dict[str, int]] = {
         "free": 30,
         "pro": 120,
         "elite": 600,
@@ -156,14 +157,14 @@ class SubscriptionGateMiddleware(BaseHTTPMiddleware):
     - /stats/speeds/*  → Pro+
     """
 
-    TIER_REQUIRED = {
+    TIER_REQUIRED: ClassVar[dict[str, str]] = {
         "/api/v1/coaching/": "pro",
         "/api/v1/video/": "pro",
         "/api/v1/stats/match/{match_id}/heatmap/": "pro",
         "/api/v1/stats/match/{match_id}/speeds/": "pro",
     }
 
-    TIER_HIERARCHY = {"free": 0, "pro": 1, "elite": 2}
+    TIER_HIERARCHY: ClassVar[dict[str, int]] = {"free": 0, "pro": 1, "elite": 2}
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         path = request.url.path

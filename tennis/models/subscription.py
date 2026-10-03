@@ -10,6 +10,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from tennis.timeutil import utcnow
+
 
 class SubscriptionTier(str, Enum):
     FREE = "free"
@@ -104,7 +106,7 @@ class UserEntitlement(BaseModel):
     payment_provider: PaymentProvider | None = None
 
     # ── Billing ──────────────────────────────────────────
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=utcnow)
     expires_at: datetime | None = None
     trial_ends_at: datetime | None = None
     price_monthly: float = 0.0

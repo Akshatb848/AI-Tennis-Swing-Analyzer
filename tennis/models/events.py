@@ -11,6 +11,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from tennis.timeutil import utcnow
+
 # ── Enums ────────────────────────────────────────────────────────────────────
 
 class EventType(str, Enum):
@@ -243,7 +245,7 @@ class LineCallEvent(BaseModel):
     final_verdict: LineCallVerdict | None = None
 
     timestamp_ms: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class EventBatch(BaseModel):

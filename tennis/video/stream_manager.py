@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
+from tennis.timeutil import utcnow
+
 logger = logging.getLogger(__name__)
 
 
@@ -93,7 +95,7 @@ class StreamManager:
             return False
 
         state.status = StreamStatus.LIVE
-        state.started_at = datetime.utcnow()
+        state.started_at = utcnow()
 
         # In production: start ffmpeg process for RTMP → HLS
         # ffmpeg -i rtmp://input -c:v copy -f hls -hls_time 2 -hls_list_size 5 output.m3u8
@@ -108,7 +110,7 @@ class StreamManager:
 
         state.status = StreamStatus.STOPPED
         if state.started_at:
-            state.uptime_seconds = (datetime.utcnow() - state.started_at).total_seconds()
+            state.uptime_seconds = (utcnow() - state.started_at).total_seconds()
 
         logger.info("Stream %s stopped after %.0fs", stream_id, state.uptime_seconds)
         return True

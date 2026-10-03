@@ -4,6 +4,7 @@ Recording routes — Guided match setup, recording control, and video ingest.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 
@@ -151,7 +152,7 @@ async def recording_summary(session_id: str):
 async def ingest_video(
     session_id: str,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008 - idiomatic FastAPI parameter declaration
 ):
     """
     Upload a video file and trigger full pipeline processing.
@@ -167,8 +168,7 @@ async def ingest_video(
     video_path = os.path.join(UPLOAD_DIR, f"{session_id}{file_ext}")
 
     content = await file.read()
-    with open(video_path, "wb") as f:
-        f.write(content)
+    await asyncio.to_thread(_write_bytes, video_path, content)
 
     logger.info("Video uploaded: %s (%.1f MB)", video_path, len(content) / 1024 / 1024)
 
@@ -185,6 +185,12 @@ async def ingest_video(
         "status": "processing",
         "message": "Video uploaded and processing started. Check /status for progress.",
     }
+
+
+def _write_bytes(path: str, data: bytes) -> None:
+    """Blocking file write, run off the event loop via ``asyncio.to_thread``."""
+    with open(path, "wb") as f:
+        f.write(data)
 
 
 async def _process_video(session_id: str, video_path: str, pipeline: LivePipeline):
@@ -204,7 +210,7 @@ async def _process_video(session_id: str, video_path: str, pipeline: LivePipelin
             "Video processing complete for session %s: %d frames, %d points",
             session_id, result.total_frames, result.points_detected,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - background task fault isolation: failure is recorded in the session result
         logger.error("Video processing failed for session %s: %s", session_id, e)
         _session_results[session_id] = SessionResult(
             session_id=session_id,

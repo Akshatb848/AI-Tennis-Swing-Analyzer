@@ -16,7 +16,6 @@ import math
 from tennis.engine.shot_classifier import ShotClassifier
 from tennis.models.events import (
     BallEvent,
-    BounceConfidence,
     EventType,
     LineCallEvent,
     LineCallVerdict,
@@ -272,19 +271,14 @@ class EventProcessor:
         # Determine confidence based on distance from line
         if dist_cm > 20:
             confidence = 0.99
-            bounce_conf = BounceConfidence.HIGH
         elif dist_cm > 10:
             confidence = 0.90
-            bounce_conf = BounceConfidence.HIGH
         elif dist_cm > 5:
             confidence = 0.80
-            bounce_conf = BounceConfidence.MEDIUM
         elif dist_cm > 2:
             confidence = 0.65
-            bounce_conf = BounceConfidence.LOW
         else:
             confidence = 0.50
-            bounce_conf = BounceConfidence.UNCERTAIN
 
         # Update ball event
         event.line_call = LineCallVerdict.IN if is_in else LineCallVerdict.OUT
@@ -332,7 +326,7 @@ class EventProcessor:
                     self._player_ids.append(pe.player_id)
 
         # Classify the shot using the full classifier
-        shot_type, shot_confidence = self._classify_shot(event, player_events)
+        shot_type, _shot_confidence = self._classify_shot(event, player_events)
         player_id = self._determine_hitting_player(event, player_events)
         self._last_hit_player = player_id
 
@@ -438,7 +432,6 @@ class EventProcessor:
         # Ball trajectory angle (compute from velocity if available)
         trajectory_angle = 0.0
         if event.velocity_mph:
-            speed = event.velocity_mph
             trajectory_angle = self._compute_trajectory_angle(event)
 
         shot_type, confidence = self.shot_classifier.classify(
@@ -561,7 +554,7 @@ class EventProcessor:
         score += min(close_calls * 0.1, 0.2)
 
         # Variety of shots
-        shot_types = set(s.shot_type for s in self.current_rally_shots)
+        shot_types = {s.shot_type for s in self.current_rally_shots}
         score += min(len(shot_types) / 6.0, 0.2)
 
         return min(score, 1.0)

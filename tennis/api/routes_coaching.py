@@ -23,7 +23,7 @@ async def analyze_swing(
     session_id: str,
     player_id: str,
     shot_type: str = "forehand",
-    pose_sequence: list[dict] = [],
+    pose_sequence: list[dict] = [],  # noqa: B006 - FastAPI deep-copies parameter defaults per request; default is published in the OpenAPI schema
 ):
     """Analyze a single swing from pose data."""
     return _coaching.analyze_swing(session_id, player_id, pose_sequence, shot_type)

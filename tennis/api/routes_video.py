@@ -16,7 +16,7 @@ _videos: dict[str, dict] = {}
 @router.post("/upload")
 async def upload_video(
     session_id: str,
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008 - idiomatic FastAPI parameter declaration
 ):
     """Upload a match video for processing."""
     video_id = str(uuid.uuid4())

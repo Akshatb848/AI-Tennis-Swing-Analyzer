@@ -81,7 +81,7 @@ class DashboardDataProvider:
         if session_id and HAS_HTTPX:
             try:
                 return self._fetch_from_api(session_id)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - best-effort fetch; dashboard falls back to demo data
                 logger.warning("Failed to fetch from API: %s", e)
 
         return None
@@ -97,7 +97,7 @@ class DashboardDataProvider:
                 summary = r.json()
 
             return self._transform_api_response(summary)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - best-effort fetch; dashboard falls back to demo data
             logger.warning("API fetch failed: %s", e)
             return None
 
