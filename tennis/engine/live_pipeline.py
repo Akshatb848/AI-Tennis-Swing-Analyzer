@@ -147,7 +147,7 @@ class LivePipeline:
         metadata = self._capture.open()
 
         # Start recording
-        if self._recording and self._recording.state == RecordingState.READY:
+        if self._recording and self._recording.state in (RecordingState.SETUP, RecordingState.CALIBRATING):
             self._recording.start_recording()
 
         logger.info(

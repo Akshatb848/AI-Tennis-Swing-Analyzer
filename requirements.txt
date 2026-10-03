@@ -22,7 +22,7 @@ chromadb>=0.4.0
 joblib>=1.3.0
 statsmodels
 openai
-opencv-python-headless>=4.8.0
+opencv-python-headless>=4.8.0,<5  # OpenCV 5 changed Hough* output shapes used in tennis/ml and tennis/agents
 pydantic-settings>=2.0.0
 aiofiles>=23.0.0
 PyJWT>=2.8.0

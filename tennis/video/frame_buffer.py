@@ -46,7 +46,7 @@ class FrameBuffer:
         self.fps = fps
         self._frames: deque[tuple[int, np.ndarray]] = deque(maxlen=max_frames)
         self._events: list[FrameEvent] = []
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # re-entrant: get_session_summary() reads buffer_duration_seconds under the lock
         self._total_frames = 0
 
     def add_frame(self, frame_number: int, frame: np.ndarray, event: Optional[FrameEvent] = None):
