@@ -270,6 +270,7 @@ if "Match Overview" in view:
     fig_radar.add_trace(go.Scatterpolar(r=p2_vals + [p2_vals[0]], theta=categories + [categories[0]], fill='toself', name=data['match']['player2'], line_color='#ff6b6b', fillcolor='rgba(255,107,107,0.15)'))
     fig_radar.update_layout(polar=dict(bgcolor='#0d1117', radialaxis=dict(visible=True, range=[0, 1], gridcolor='#2a2a4a')), paper_bgcolor='#0a0a0a', font_color='#c9d1d9', height=400, showlegend=True)
     st.plotly_chart(fig_radar, use_container_width=True)
+    st.caption("Demo data: radar values are fixed placeholders, not computed from this match.")
 
     # Rally Breakdown + Line Call Summary (side by side)
     col_a, col_b = st.columns(2)
@@ -309,6 +310,7 @@ if "Match Overview" in view:
         fig_speed.add_trace(go.Histogram(x=np.random.normal(data['p2_stats'].get('avg_serve_speed', 112), 10, 55), name=data['match']['player2'], marker_color='#ff6b6b', opacity=0.7))
         fig_speed.update_layout(paper_bgcolor='#0a0a0a', plot_bgcolor='#0d1117', font_color='#c9d1d9', height=250, xaxis_title="Speed (mph)", barmode='overlay')
         st.plotly_chart(fig_speed, use_container_width=True)
+        st.caption("Demo data: distribution is simulated around the average serve speed, not individual measured serves.")
 
 # ── Shot Analysis ────────────────────────────────────────────────────────────
 elif "Shot Analysis" in view:
@@ -325,6 +327,7 @@ elif "Shot Analysis" in view:
         paper_bgcolor='#0a0a0a', plot_bgcolor='#0d1117', font_color='#c9d1d9', height=400,
     )
     st.plotly_chart(fig_heatmap, use_container_width=True)
+    st.caption("Demo data: heatmap is randomly generated, not real shot placement.")
 
     col1, col2 = st.columns(2)
 
@@ -406,6 +409,8 @@ elif "Match Review" in view:
 # ── Trends ───────────────────────────────────────────────────────────────────
 elif "Trends" in view:
     st.markdown("## Performance Trends")
+    st.info("Demo data: this view shows randomly generated, illustrative trends. "
+            "Multi-match history is not yet tracked.")
 
     dates = pd.date_range(end=datetime.now(), periods=12, freq='W')
     trend_df = pd.DataFrame({
