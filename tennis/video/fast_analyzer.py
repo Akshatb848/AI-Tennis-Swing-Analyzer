@@ -17,13 +17,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
-import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+
+from tennis.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ except ImportError:
 try:
     from tennis.agents.moe_orchestrator import MoEOrchestrator
     HAS_MOE = True
-except Exception as _moe_err:
+except Exception as _moe_err:  # noqa: BLE001 - optional subsystem: any import-time failure disables MoE agents
     HAS_MOE = False
     logger.warning("MoE agents not available: %s", _moe_err)
 
@@ -73,13 +73,13 @@ class AnalysisJob:
     session_id: str = ""
     video_path: str = ""
     match_type: str = "singles"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
+    created_at: datetime = field(default_factory=utcnow)
+    completed_at: datetime | None = None
 
     state: JobState = JobState.QUEUED
     stage_index: int = 0
     progress: float = 0.0
-    error: Optional[str] = None
+    error: str | None = None
 
     # Video metadata (filled from actual video)
     duration_seconds: float = 0.0
@@ -96,7 +96,7 @@ class AnalysisJob:
 _jobs: dict[str, AnalysisJob] = {}
 
 
-def get_job(job_id: str) -> Optional[AnalysisJob]:
+def get_job(job_id: str) -> AnalysisJob | None:
     return _jobs.get(job_id)
 
 
@@ -151,7 +151,7 @@ class FastVideoAnalyzer:
 
             job.state = JobState.COMPLETE
             job.progress = 100.0
-            job.completed_at = datetime.utcnow()
+            job.completed_at = utcnow()
             elapsed = (job.completed_at - job.created_at).total_seconds()
             logger.info("Analysis complete for job %s in %.1fs", job.job_id, elapsed)
 
@@ -168,9 +168,9 @@ class FastVideoAnalyzer:
                 asyncio.get_event_loop().run_in_executor(None, fn),
                 timeout=self.STAGE_TIMEOUT,
             )
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError:  # noqa: UP041 - distinct from builtin TimeoutError on Python 3.10 (in CI matrix)
             logger.warning("Stage %d timed out — continuing", idx)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - stage fault isolation: a failed stage must not abort the job
             logger.warning("Stage %d error (%s) — continuing", idx, exc)
         self.job.progress = progress_end
 
@@ -299,7 +299,6 @@ class FastVideoAnalyzer:
 
     def _inject_fallback_coaching(self):
         """Minimal coaching data when MoE agents are unavailable."""
-        dur = max(1.0, self.job.duration_seconds)
         self.job.results.setdefault("frame_overlays", [])
         self.job.results.setdefault("coaching_report", {
             "performance_summary": "Analysis complete. Coaching agents unavailable.",
@@ -366,7 +365,7 @@ class FastVideoAnalyzer:
                 data = f.read(65536)
             # Convert bytes to float values
             return [b / 255.0 for b in data[:256]]
-        except Exception:
+        except Exception:  # noqa: BLE001 - best-effort fingerprint; neutral fallback on any failure
             return [0.5] * 256
 
     def _fp_value(self, offset: int, mod: int) -> int:
@@ -558,7 +557,7 @@ class FastVideoAnalyzer:
             )
             if circles is not None:
                 for circle in circles[0]:
-                    x, y, r = circle
+                    x, y, _r = circle
                     detections += 1
                     ball_positions.append((fidx, float(x), float(y)))
 
@@ -686,7 +685,6 @@ class FastVideoAnalyzer:
         """
         dur = max(1, self.job.duration_seconds)
         timeline = self._motion_timeline
-        ball = self.job.results.get("ball", {})
         shots = self.job.results.get("shots", {})
         total_shots = shots.get("total", 10)
 

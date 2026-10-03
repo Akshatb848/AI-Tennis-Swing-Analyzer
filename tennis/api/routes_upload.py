@@ -4,14 +4,13 @@ Upload routes — Chunked video file upload endpoint + byte-range video streamin
 
 from __future__ import annotations
 
-import os
-import uuid
+import asyncio
 import logging
+import uuid
 from pathlib import Path
-from typing import Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import StreamingResponse, Response
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
 
 from tennis.config import settings
 
@@ -38,12 +37,21 @@ CONTENT_TYPES = {
 # POST /  — upload (single or chunked)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _assemble_chunks(final_path: Path, chunk_dir: Path, total_chunks: int) -> None:
+    """Concatenate (and delete) chunk files into ``final_path``. Blocking; run via ``asyncio.to_thread``."""
+    with open(final_path, "wb") as out:
+        for i in range(total_chunks):
+            cp = chunk_dir / f"chunk_{i:05d}"
+            out.write(cp.read_bytes())
+            cp.unlink()
+
+
 @router.post("/")
 async def upload_video(
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008 - idiomatic FastAPI parameter declaration
     chunk_index: int = Form(0),
     total_chunks: int = Form(1),
-    upload_id: Optional[str] = Form(None),
+    upload_id: str | None = Form(None),
 ):
     """
     Upload a video file (single-shot or chunked).
@@ -91,11 +99,7 @@ async def upload_video(
     # If all chunks received, assemble
     if len(record["received_chunks"]) == total_chunks:
         final_path = UPLOAD_DIR / f"{upload_id}{ext}"
-        with open(final_path, "wb") as out:
-            for i in range(total_chunks):
-                cp = chunk_dir / f"chunk_{i:05d}"
-                out.write(cp.read_bytes())
-                cp.unlink()
+        await asyncio.to_thread(_assemble_chunks, final_path, chunk_dir, total_chunks)
 
         # Cleanup chunk dir
         try:
@@ -164,31 +168,30 @@ async def stream_video(upload_id: str, request: Request):
     """
     # Try in-memory lookup first
     record = _uploads.get(upload_id)
-    file_path: Optional[Path] = None
+    file_path: Path | None = None
 
     if record and record.get("final_path"):
         file_path = Path(record["final_path"])
 
     # Fallback: scan upload directory (survives server restart)
-    if not file_path or not file_path.exists():
-        if UPLOAD_DIR.exists():
-            for f in UPLOAD_DIR.iterdir():
-                if f.is_file() and f.stem == upload_id:
-                    file_path = f
-                    # Restore in-memory record if missing
-                    if upload_id not in _uploads:
-                        ext = f.suffix.lower()
-                        _uploads[upload_id] = {
-                            "upload_id": upload_id,
-                            "filename": f.name,
-                            "ext": ext,
-                            "total_chunks": 1,
-                            "received_chunks": {0},
-                            "status": "complete",
-                            "final_path": str(f),
-                            "size_bytes": f.stat().st_size,
-                        }
-                    break
+    if (not file_path or not file_path.exists()) and UPLOAD_DIR.exists():
+        for f in UPLOAD_DIR.iterdir():
+            if f.is_file() and f.stem == upload_id:
+                file_path = f
+                # Restore in-memory record if missing
+                if upload_id not in _uploads:
+                    ext = f.suffix.lower()
+                    _uploads[upload_id] = {
+                        "upload_id": upload_id,
+                        "filename": f.name,
+                        "ext": ext,
+                        "total_chunks": 1,
+                        "received_chunks": {0},
+                        "status": "complete",
+                        "final_path": str(f),
+                        "size_bytes": f.stat().st_size,
+                    }
+                break
 
     if not file_path or not file_path.exists():
         raise HTTPException(status_code=404, detail=f"Video file for upload_id={upload_id} not found")

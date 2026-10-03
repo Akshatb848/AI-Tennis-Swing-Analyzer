@@ -9,10 +9,8 @@ Endpoints:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
-from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException
 
@@ -250,7 +248,7 @@ async def _run_job(job: AnalysisJob):
         logger.exception("Background job %s failed", job.job_id)
 
 
-def _find_video(upload_id: str, filename: str) -> Optional[str]:
+def _find_video(upload_id: str, filename: str) -> str | None:
     """Try to locate the video by upload_id prefix or exact filename."""
     if not os.path.isdir(UPLOAD_DIR):
         return None
@@ -258,13 +256,12 @@ def _find_video(upload_id: str, filename: str) -> Optional[str]:
     # Look for files starting with upload_id or named filename
     for f in os.listdir(UPLOAD_DIR):
         full = os.path.join(UPLOAD_DIR, f)
-        if f.startswith(upload_id) or f == filename:
-            if os.path.isfile(full):
-                return full
+        if (f.startswith(upload_id) or f == filename) and os.path.isfile(full):
+            return full
     return None
 
 
-def _find_video_by_name(filename: str) -> Optional[str]:
+def _find_video_by_name(filename: str) -> str | None:
     """Last-resort: find any recently uploaded video file."""
     if not os.path.isdir(UPLOAD_DIR):
         return None

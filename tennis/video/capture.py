@@ -14,10 +14,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass, field
+from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import AsyncIterator, Optional, Union
 
 import numpy as np
 
@@ -76,11 +75,11 @@ class VideoCapture:
 
     def __init__(
         self,
-        source: Union[str, int],
+        source: str | int,
         target_fps: float = 30.0,
         max_buffer_frames: int = 120,
-        resize_width: Optional[int] = None,
-        resize_height: Optional[int] = None,
+        resize_width: int | None = None,
+        resize_height: int | None = None,
     ):
         if not HAS_OPENCV:
             raise RuntimeError("OpenCV is required for video capture. Install opencv-python-headless.")
@@ -91,8 +90,8 @@ class VideoCapture:
         self.resize_width = resize_width
         self.resize_height = resize_height
 
-        self._cap: Optional[cv2.VideoCapture] = None
-        self._metadata: Optional[VideoMetadata] = None
+        self._cap: cv2.VideoCapture | None = None
+        self._metadata: VideoMetadata | None = None
         self._frame_count: int = 0
         self._start_time_ns: int = 0
         self._is_open: bool = False
@@ -106,7 +105,7 @@ class VideoCapture:
             self._cap = cv2.VideoCapture(str(self.source))
 
         if not self._cap.isOpened():
-            raise IOError(f"Cannot open video source: {self.source}")
+            raise OSError(f"Cannot open video source: {self.source}")
 
         self._is_open = True
         self._frame_count = 0
@@ -181,7 +180,7 @@ class VideoCapture:
 
         logger.info("Capture complete: %d frames processed", self._frame_count)
 
-    def read_frame(self) -> Optional[CapturedFrame]:
+    def read_frame(self) -> CapturedFrame | None:
         """Read a single frame synchronously. Returns None at end of video."""
         if not self._is_open or self._cap is None:
             return None
@@ -265,7 +264,7 @@ class VideoCapture:
         )
 
     @staticmethod
-    def _detect_source_type(source: Union[str, int]) -> CaptureSourceType:
+    def _detect_source_type(source: str | int) -> CaptureSourceType:
         if isinstance(source, int):
             return CaptureSourceType.CAMERA
         s = str(source).lower()

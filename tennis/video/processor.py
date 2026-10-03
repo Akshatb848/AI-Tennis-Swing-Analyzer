@@ -4,16 +4,18 @@ Production pipeline for tennis match video processing.
 """
 
 from __future__ import annotations
-import os
-import uuid
+
 import asyncio
-import subprocess
 import json
 import logging
-from enum import Enum
+import os
+import subprocess
+import uuid
 from dataclasses import dataclass, field
-from typing import Optional
 from datetime import datetime
+from enum import Enum
+
+from tennis.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +90,7 @@ class VideoSegment:
     segment_type: str = "point"   # point, game, set, highlight
     start_time_ms: int = 0
     end_time_ms: int = 0
-    point_number: Optional[int] = None
+    point_number: int | None = None
     score_at_start: str = ""
     score_at_end: str = ""
     tags: list[str] = field(default_factory=list)
@@ -103,9 +105,9 @@ class VideoJob:
     output_dir: str = ""
     status: VideoStatus = VideoStatus.UPLOADED
     progress: float = 0.0
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    created_at: datetime = field(default_factory=utcnow)
+    completed_at: datetime | None = None
+    error_message: str | None = None
     duration_seconds: float = 0.0
     fps: float = 30.0
     width: int = 1920
@@ -114,7 +116,7 @@ class VideoJob:
     transcode_outputs: dict[str, str] = field(default_factory=dict)
 
 
-def _probe_with_ffprobe(source_path: str) -> Optional[dict]:
+def _probe_with_ffprobe(source_path: str) -> dict | None:
     """Probe video metadata using ffprobe if available."""
     try:
         cmd = [
@@ -124,7 +126,7 @@ def _probe_with_ffprobe(source_path: str) -> Optional[dict]:
             source_path,
         ]
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=30,
+            cmd, capture_output=True, text=True, timeout=30, check=False,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         if result.returncode == 0:
@@ -134,7 +136,7 @@ def _probe_with_ffprobe(source_path: str) -> Optional[dict]:
     return None
 
 
-def _probe_with_opencv(source_path: str) -> Optional[dict]:
+def _probe_with_opencv(source_path: str) -> dict | None:
     """Probe video metadata using OpenCV as fallback."""
     if not HAS_OPENCV:
         return None
@@ -151,8 +153,14 @@ def _probe_with_opencv(source_path: str) -> Optional[dict]:
         info["duration"] = info["total_frames"] / info["fps"] if info["fps"] > 0 else 0.0
         cap.release()
         return info
-    except Exception:
+    except Exception:  # noqa: BLE001 - best-effort OpenCV probe; any failure means "metadata unavailable"
         return None
+
+
+def _write_text(path: str, text: str) -> None:
+    """Blocking text write, run off the event loop via ``asyncio.to_thread``."""
+    with open(path, "w") as f:
+        f.write(text)
 
 
 class VideoProcessor:
@@ -211,9 +219,9 @@ class VideoProcessor:
             # Done
             job.status = VideoStatus.COMPLETE
             job.progress = 1.0
-            job.completed_at = datetime.utcnow()
+            job.completed_at = utcnow()
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - job fault isolation: failure is recorded on the job
             job.status = VideoStatus.FAILED
             job.error_message = str(e)
             logger.error("Video processing failed for job %s: %s", job_id, e)
@@ -285,14 +293,14 @@ class VideoProcessor:
                 else:
                     logger.warning("ffmpeg transcode failed for %s profile", profile.name)
                     job.transcode_outputs[profile.name] = job.source_path
-            except (FileNotFoundError, asyncio.TimeoutError):
+            except (asyncio.TimeoutError, FileNotFoundError):  # noqa: UP041 - distinct from builtin TimeoutError on Python 3.10 (in CI matrix)
                 # ffmpeg not available — use source directly
                 logger.info("ffmpeg not available, using source file for %s profile", profile.name)
                 job.transcode_outputs[profile.name] = job.source_path
 
             job.progress = 0.1 + (0.5 * (i + 1) / len(TRANSCODE_PROFILES))
 
-    async def _segment_by_points(self, job: VideoJob, scoring_timeline: Optional[list] = None):
+    async def _segment_by_points(self, job: VideoJob, scoring_timeline: list | None = None):
         """Segment video into individual points using scoring timeline."""
         if scoring_timeline:
             # Use real scoring timeline
@@ -330,18 +338,17 @@ class VideoProcessor:
         manifest = "#EXTM3U\n#EXT-X-VERSION:3\n"
         bandwidth_map = {"low": 800000, "medium": 2500000, "high": 5000000}
         res_map = {"low": "854x480", "medium": "1280x720", "high": "1920x1080"}
-        for name, path in job.transcode_outputs.items():
+        for name in job.transcode_outputs:
             bw = bandwidth_map.get(name, 2500000)
             res = res_map.get(name, "1280x720")
             manifest += f'#EXT-X-STREAM-INF:BANDWIDTH={bw},RESOLUTION={res}\n{name}.m3u8\n'
         try:
-            with open(manifest_path, "w") as f:
-                f.write(manifest)
+            await asyncio.to_thread(_write_text, manifest_path, manifest)
         except OSError as e:
             logger.warning("Could not write HLS manifest: %s", e)
         job.transcode_outputs["manifest"] = manifest_path
 
-    def get_job(self, job_id: str) -> Optional[VideoJob]:
+    def get_job(self, job_id: str) -> VideoJob | None:
         return self._jobs.get(job_id)
 
     def extract_frames(

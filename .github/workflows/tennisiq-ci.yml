@@ -52,7 +52,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install linters
-        run: pip install ruff mypy pydantic
+        run: pip install ruff==0.16.10 mypy pydantic
 
       - name: Run ruff
         run: ruff check tennis/ --output-format=github

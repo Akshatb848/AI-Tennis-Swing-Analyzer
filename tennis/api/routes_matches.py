@@ -3,13 +3,15 @@ Match routes — Match state, scoring, and timeline.
 """
 
 from __future__ import annotations
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 
-from tennis.models.match import (
-    MatchConfig, MatchState, MatchSummary, PointOutcomeType,
-)
 from tennis.engine.scoring import ScoringEngine
+from tennis.models.match import (
+    MatchConfig,
+    MatchState,
+    PointOutcomeType,
+)
 
 router = APIRouter()
 

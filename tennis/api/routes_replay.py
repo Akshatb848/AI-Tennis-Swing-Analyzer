@@ -9,8 +9,8 @@ Provides:
 """
 
 from __future__ import annotations
+
 from fastapi import APIRouter, HTTPException
-from typing import Optional
 
 from tennis.engine.review_engine import ReviewEngine
 

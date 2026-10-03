@@ -4,7 +4,6 @@ Line call routes — Automated line call history and challenge system.
 
 from __future__ import annotations
 
-from typing import Optional
 from fastapi import APIRouter, HTTPException
 
 from tennis.engine.line_calling import LineCallingSystem

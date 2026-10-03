@@ -5,8 +5,8 @@ Evaluates tactical choices: baseline vs net play, crosscourt vs down-the-line pa
 serve placement patterns, and overall court management.
 """
 from __future__ import annotations
+
 import logging
-import math
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,6 @@ class StrategyAgent:
         player_data = context.get("player", {})
         court_data = context.get("court", {})
 
-        trajectory = ball_data.get("trajectory", [])
         bounces = ball_data.get("bounce_locations", [])
         avg_speed = ball_data.get("avg_speed_kmh", 130.0)
         coverage = player_data.get("court_coverage", [0.5])

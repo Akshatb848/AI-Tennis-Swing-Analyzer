@@ -6,9 +6,7 @@ Mirrors SwingVision: detect bounce, determine in/out, store for replay.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from dataclasses import dataclass, field
-from typing import Optional
 from enum import Enum
 
 from tennis.engine.event_processor import CourtGeometry, Point2D
@@ -55,7 +53,7 @@ class LineCall:
     # Context
     is_serve: bool = False
     serve_side: str = "deuce"
-    point_number: Optional[int] = None
+    point_number: int | None = None
     score_at_time: str = ""
 
     # Replay window
@@ -66,8 +64,8 @@ class LineCall:
 
     # Challenge
     challenge_status: ChallengeStatus = ChallengeStatus.NONE
-    challenged_by: Optional[str] = None
-    original_verdict: Optional[CallVerdict] = None
+    challenged_by: str | None = None
+    original_verdict: CallVerdict | None = None
 
     @property
     def is_challengeable(self) -> bool:
@@ -207,7 +205,7 @@ class LineCallingSystem:
         self.history.calls.append(call)
         return call
 
-    def challenge_call(self, call_id: str, challenger_id: str) -> Optional[LineCall]:
+    def challenge_call(self, call_id: str, challenger_id: str) -> LineCall | None:
         """
         Challenge a line call. Re-evaluates with stricter threshold.
         Returns updated call or None if not found.
@@ -230,7 +228,7 @@ class LineCallingSystem:
                 return call
         return None
 
-    def get_call(self, call_id: str) -> Optional[LineCall]:
+    def get_call(self, call_id: str) -> LineCall | None:
         for call in self.history.calls:
             if call.call_id == call_id:
                 return call

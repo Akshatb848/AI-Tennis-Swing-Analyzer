@@ -7,9 +7,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
+
+from tennis.timeutil import utcnow
 
 
 class Handedness(str, Enum):
@@ -40,17 +41,17 @@ class PlayerProfile(BaseModel):
     """Full player profile with biographical and play-style data."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    email: Optional[str] = None
-    avatar_url: Optional[str] = None
+    email: str | None = None
+    avatar_url: str | None = None
     handedness: Handedness = Handedness.RIGHT
     backhand_type: str = Field(default="two_handed", description="one_handed | two_handed")
     play_style: PlayStyle = PlayStyle.UNKNOWN
     skill_level: SkillLevel = SkillLevel.INTERMEDIATE
-    ntrp_rating: Optional[float] = Field(default=None, ge=1.0, le=7.0)
-    height_cm: Optional[float] = None
-    weight_kg: Optional[float] = None
-    age: Optional[int] = None
-    years_playing: Optional[int] = None
+    ntrp_rating: float | None = Field(default=None, ge=1.0, le=7.0)
+    height_cm: float | None = None
+    weight_kg: float | None = None
+    age: int | None = None
+    years_playing: int | None = None
 
     # ── Historical aggregates ────────────────────────────
     total_matches: int = 0
@@ -62,8 +63,8 @@ class PlayerProfile(BaseModel):
     avg_unforced_errors_per_match: float = 0.0
 
     # ── Metadata ─────────────────────────────────────────
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class PlayerStyleEmbedding(BaseModel):
@@ -92,7 +93,7 @@ class PlayerStyleEmbedding(BaseModel):
     shot_variety_score: float = Field(default=0.5, ge=0.0, le=1.0)
     pressure_performance: float = Field(default=0.5, ge=0.0, le=1.0)
     endurance_index: float = Field(default=0.5, ge=0.0, le=1.0)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     sessions_analyzed: int = 0
 
 
@@ -100,7 +101,7 @@ class PlayerSessionStats(BaseModel):
     """Per-session aggregated statistics for a player."""
     player_id: str
     session_id: str
-    match_id: Optional[str] = None
+    match_id: str | None = None
 
     # ── Serve stats ──────────────────────────────────────
     total_serve_points: int = 0
@@ -154,7 +155,7 @@ class PlayerSessionStats(BaseModel):
     break_point_save_pct: float = 0.0
 
     # ── Computed at end of session ───────────────────────
-    computed_at: datetime = Field(default_factory=datetime.utcnow)
+    computed_at: datetime = Field(default_factory=utcnow)
 
 
 class PlayerComparison(BaseModel):

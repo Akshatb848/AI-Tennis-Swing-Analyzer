@@ -5,15 +5,14 @@ Uses contour analysis and background subtraction to find players,
 then analyzes their movement across the court.
 """
 from __future__ import annotations
+
 import logging
 import math
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
 try:
     import cv2
-    import numpy as np
     HAS_CV2 = True
 except ImportError:
     HAS_CV2 = False

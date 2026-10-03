@@ -5,9 +5,8 @@ Uses HSV color segmentation and Hough line detection to find court geometry.
 Outputs structured court data used by all downstream agents.
 """
 from __future__ import annotations
+
 import logging
-import math
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

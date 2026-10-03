@@ -2,9 +2,8 @@
 Tests for Event Processor — CV event → tennis semantics verification.
 """
 
-import pytest
-from tennis.engine.event_processor import EventProcessor, CourtGeometry
-from tennis.models.events import BallEvent, EventType, Point2D, BoundingBox
+from tennis.engine.event_processor import CourtGeometry, EventProcessor
+from tennis.models.events import BallEvent, BoundingBox, EventType, Point2D
 
 
 class TestCourtGeometry:
@@ -15,28 +14,28 @@ class TestCourtGeometry:
 
     def test_ball_in_center(self):
         pos = Point2D(x=0.0, y=0.0)
-        is_in, dist, line = self.court.is_ball_in(pos)
+        is_in, dist, _line = self.court.is_ball_in(pos)
         assert is_in is True
         assert dist > 0
 
     def test_ball_clearly_out(self):
         pos = Point2D(x=10.0, y=0.0)  # Way past sideline (4.115m)
-        is_in, dist, line = self.court.is_ball_in(pos)
+        is_in, _dist, _line = self.court.is_ball_in(pos)
         assert is_in is False
 
     def test_ball_on_baseline(self):
         pos = Point2D(x=0.0, y=11.885)  # Exactly on baseline
-        is_in, dist, line = self.court.is_ball_in(pos)
+        is_in, _dist, _line = self.court.is_ball_in(pos)
         assert is_in is True  # On the line = in
 
     def test_ball_just_out_baseline(self):
         pos = Point2D(x=0.0, y=12.0)  # Just past baseline
-        is_in, dist, line = self.court.is_ball_in(pos)
+        is_in, _dist, _line = self.court.is_ball_in(pos)
         assert is_in is False
 
     def test_ball_on_sideline(self):
         pos = Point2D(x=4.115, y=0.0)  # On singles sideline
-        is_in, dist, line = self.court.is_ball_in(pos)
+        is_in, _dist, _line = self.court.is_ball_in(pos)
         assert is_in is True
 
     def test_doubles_wider_court(self):

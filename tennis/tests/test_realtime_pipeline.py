@@ -9,8 +9,9 @@ works end-to-end without requiring real tennis footage.
 import asyncio
 import os
 import tempfile
-import pytest
+
 import numpy as np
+import pytest
 
 # Try OpenCV — skip if not available
 cv2 = pytest.importorskip("cv2")
@@ -309,19 +310,19 @@ class TestThermalManager:
     """Tests for adaptive inference throttling."""
 
     def test_initial_mode_is_full(self):
-        from tennis.infra.thermal_manager import ThermalManager, InferenceMode
+        from tennis.infra.thermal_manager import InferenceMode, ThermalManager
         tm = ThermalManager()
         assert tm.mode == InferenceMode.FULL
 
     def test_degradation_on_high_latency(self):
-        from tennis.infra.thermal_manager import ThermalManager, InferenceMode
+        from tennis.infra.thermal_manager import InferenceMode, ThermalManager
         tm = ThermalManager(latency_budget_ms=30, degradation_threshold=5)
         for _ in range(6):
             tm.record_latency(50)  # Over budget
         assert tm.mode == InferenceMode.REDUCED
 
     def test_recovery_on_low_latency(self):
-        from tennis.infra.thermal_manager import ThermalManager, InferenceMode
+        from tennis.infra.thermal_manager import InferenceMode, ThermalManager
         tm = ThermalManager(latency_budget_ms=30, degradation_threshold=3, recovery_threshold=5)
         # Degrade first
         for _ in range(4):
@@ -370,7 +371,9 @@ class TestDashboardDataProvider:
 
     def test_store_and_retrieve(self):
         from tennis.dashboard.data_provider import (
-            DashboardDataProvider, store_session_data, get_available_sessions,
+            DashboardDataProvider,
+            get_available_sessions,
+            store_session_data,
         )
         test_data = {
             "match": {

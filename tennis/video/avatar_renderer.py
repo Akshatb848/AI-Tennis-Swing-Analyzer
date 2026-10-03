@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -51,7 +50,7 @@ class AvatarFrame:
     # Limbs
     limb_segments: list[LimbSegment] = field(default_factory=list)
     # Racket
-    racket_segment: Optional[LimbSegment] = None
+    racket_segment: LimbSegment | None = None
     # Metadata
     body_rotation: float = 0.0
     facing_direction: str = "right"
@@ -135,7 +134,7 @@ class AvatarRenderer:
     - Visually neutral and non-distracting
     """
 
-    def __init__(self, style: Optional[AvatarStyle] = None):
+    def __init__(self, style: AvatarStyle | None = None):
         self.style = style or AvatarStyle()
         self._player_styles: dict[str, AvatarStyle] = {}
 

@@ -3,11 +3,10 @@ Stats routes — Player statistics, match analytics, and leaderboards.
 """
 
 from __future__ import annotations
+
 from fastapi import APIRouter, HTTPException
 
-from tennis.engine.scoring import ScoringEngine
 from tennis.engine.stats_calculator import StatsCalculator
-from tennis.models.player import PlayerComparison
 
 router = APIRouter()
 

@@ -6,11 +6,11 @@ Production-grade ball state stream for commercial analytics.
 """
 
 from __future__ import annotations
-import math
-from dataclasses import dataclass, field
-from typing import Optional
-from tennis.models.events import BallEvent, BoundingBox, EventType, Point2D, Point3D
 
+import math
+from dataclasses import dataclass
+
+from tennis.models.events import BallEvent, BoundingBox, EventType, Point2D
 
 # ── Shot Speed Record ────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ class ShotSpeedRecord:
     initial_velocity_kph: float = 0.0
     initial_velocity_mph: float = 0.0
     flight_duration_ms: int = 0
-    bounce_location: Optional[Point2D] = None
+    bounce_location: Point2D | None = None
     is_calibrated: bool = False
     raw_pixel_speed: float = 0.0
 
@@ -174,7 +174,7 @@ class TrajectoryBuffer:
         if len(self.points) > self.max_frames:
             self.points = self.points[-self.max_frames:]
 
-    def get_smoothed_position(self, window: int = 5) -> Optional[tuple[float, float]]:
+    def get_smoothed_position(self, window: int = 5) -> tuple[float, float] | None:
         """Weighted moving average over recent points."""
         detected = [p for p in self.points[-window:] if p.is_detected]
         if not detected:
@@ -352,8 +352,8 @@ class BallTracker:
         self._last_shot_frame: int = -30
 
     def process_frame(
-        self, detection: Optional[BoundingBox], frame_number: int, session_id: str = ""
-    ) -> Optional[BallEvent]:
+        self, detection: BoundingBox | None, frame_number: int, session_id: str = ""
+    ) -> BallEvent | None:
         """Process a single frame detection. Returns a BallEvent if significant."""
         self.frame_count = frame_number
         timestamp_ms = int(frame_number / self.fps * 1000)
@@ -525,7 +525,6 @@ class BallTracker:
 
     def _compute_current_speed(self) -> ShotSpeedRecord:
         """Compute current ball speed from Kalman state."""
-        speed_px = self.kalman.speed_pixels_per_frame
         return self.speed_calc.compute_speed(
             dx_px=self.kalman.vx / self.fps,
             dy_px=self.kalman.vy / self.fps,
@@ -536,7 +535,7 @@ class BallTracker:
         """Return the full continuous ball state stream."""
         return self.state_stream
 
-    def get_latest_state(self) -> Optional[BallState]:
+    def get_latest_state(self) -> BallState | None:
         """Return the most recent ball state."""
         return self.state_stream[-1] if self.state_stream else None
 

@@ -4,10 +4,11 @@ Uses excitement scoring, shot speed, and event significance.
 """
 
 from __future__ import annotations
+
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
 from enum import Enum
+from typing import ClassVar
 
 
 class HighlightType(str, Enum):
@@ -32,10 +33,10 @@ class Highlight:
     end_time_ms: int = 0
     excitement_score: float = 0.0
     description: str = ""
-    point_number: Optional[int] = None
+    point_number: int | None = None
     score_at_time: str = ""
     player_featured: str = ""
-    shot_speed_mph: Optional[float] = None
+    shot_speed_mph: float | None = None
     rally_length: int = 0
     tags: list[str] = field(default_factory=list)
 
@@ -75,7 +76,7 @@ class HighlightGenerator:
     """
 
     # Base excitement scores by outcome type
-    BASE_SCORES = {
+    BASE_SCORES: ClassVar[dict[str, float]] = {
         "ace": 0.7,
         "winner": 0.6,
         "double_fault": 0.3,
@@ -88,7 +89,7 @@ class HighlightGenerator:
     }
 
     # Pressure multipliers
-    PRESSURE_BONUS = {
+    PRESSURE_BONUS: ClassVar[dict[str, float]] = {
         "match_point": 0.5,
         "set_point": 0.35,
         "break_point": 0.25,
@@ -108,9 +109,9 @@ class HighlightGenerator:
         start_time_ms: int,
         end_time_ms: int,
         rally_length: int = 1,
-        shot_speed_mph: Optional[float] = None,
+        shot_speed_mph: float | None = None,
         score_at_time: str = "",
-        pressure_context: list[str] = None,
+        pressure_context: list[str] | None = None,
         is_challenge: bool = False,
     ) -> Highlight:
         """Score a point and determine if it's highlight-worthy."""
@@ -199,13 +200,13 @@ class HighlightGenerator:
             return HighlightType.HOT_SHOT
         return HighlightType.WINNER
 
-    def _generate_description(self, outcome: str, winner: str, rally_len: int, speed: Optional[float], pressure: list[str]) -> str:
+    def _generate_description(self, outcome: str, winner: str, rally_len: int, speed: float | None, pressure: list[str]) -> str:
         parts = []
         if pressure:
             parts.append(f"On {'/'.join(pressure)}:")
         parts.append(f"{winner}")
         if outcome == "ace":
-            parts.append(f"serves an ace" + (f" at {speed:.0f}mph" if speed else ""))
+            parts.append("serves an ace" + (f" at {speed:.0f}mph" if speed else ""))
         elif rally_len >= 8:
             parts.append(f"wins a {rally_len}-shot rally with a {outcome.replace('_', ' ')}")
         else:

@@ -2,7 +2,6 @@
 Tests for Coaching Engine — player embedding, flaw detection, feedback.
 """
 
-import pytest
 from tennis.engine.coaching_engine import CoachingEngine
 from tennis.models.player import PlayerProfile, PlayerSessionStats
 

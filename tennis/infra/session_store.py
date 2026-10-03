@@ -12,8 +12,8 @@ import logging
 import os
 import sqlite3
 import threading
-from datetime import datetime
-from typing import Optional
+
+from tennis.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +109,8 @@ class SessionStore:
 
     def save_session(
         self, session_id: str, mode: str = "match", status: str = "created",
-        player_names: Optional[list] = None, court_surface: str = "hard",
-        match_config: Optional[dict] = None, summary: Optional[dict] = None,
+        player_names: list | None = None, court_surface: str = "hard",
+        match_config: dict | None = None, summary: dict | None = None,
     ):
         """Save or update a session."""
         conn = self._conn
@@ -123,11 +123,11 @@ class SessionStore:
             court_surface,
             json.dumps(match_config or {}),
             json.dumps(summary or {}),
-            datetime.utcnow().isoformat(),
+            utcnow().isoformat(),
         ))
         conn.commit()
 
-    def get_session(self, session_id: str) -> Optional[dict]:
+    def get_session(self, session_id: str) -> dict | None:
         """Get a session by ID."""
         row = self._conn.execute(
             "SELECT * FROM sessions WHERE id = ?", (session_id,),
@@ -137,7 +137,7 @@ class SessionStore:
         return None
 
     def list_sessions(
-        self, limit: int = 20, offset: int = 0, status: Optional[str] = None,
+        self, limit: int = 20, offset: int = 0, status: str | None = None,
     ) -> list[dict]:
         """List sessions with optional filtering."""
         if status:
@@ -156,7 +156,7 @@ class SessionStore:
         """Update session status."""
         self._conn.execute(
             "UPDATE sessions SET status = ?, updated_at = ? WHERE id = ?",
-            (status, datetime.utcnow().isoformat(), session_id),
+            (status, utcnow().isoformat(), session_id),
         )
         self._conn.commit()
 
@@ -164,7 +164,7 @@ class SessionStore:
         """Save session summary (post-match results)."""
         self._conn.execute(
             "UPDATE sessions SET summary = ?, status = 'completed', updated_at = ? WHERE id = ?",
-            (json.dumps(summary), datetime.utcnow().isoformat(), session_id),
+            (json.dumps(summary), utcnow().isoformat(), session_id),
         )
         self._conn.commit()
 
@@ -173,7 +173,7 @@ class SessionStore:
     def save_event(
         self, session_id: str, event_type: str,
         frame_number: int = 0, timestamp_ms: int = 0,
-        data: Optional[dict] = None,
+        data: dict | None = None,
     ):
         """Save a processing event."""
         self._conn.execute(
@@ -183,7 +183,7 @@ class SessionStore:
         self._conn.commit()
 
     def get_events(
-        self, session_id: str, event_type: Optional[str] = None, limit: int = 1000,
+        self, session_id: str, event_type: str | None = None, limit: int = 1000,
     ) -> list[dict]:
         """Get events for a session."""
         if event_type:
@@ -208,7 +208,7 @@ class SessionStore:
         )
         self._conn.commit()
 
-    def get_user_usage(self, user_id: str, since: Optional[str] = None) -> dict:
+    def get_user_usage(self, user_id: str, since: str | None = None) -> dict:
         """Get usage statistics for a user."""
         if since:
             rows = self._conn.execute(

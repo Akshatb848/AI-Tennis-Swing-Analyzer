@@ -7,9 +7,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from tennis.timeutil import utcnow
 
 
 class CoachingPriority(str, Enum):
@@ -55,13 +56,13 @@ class SwingAnalysis(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
     player_id: str
-    point_number: Optional[int] = None
-    shot_number: Optional[int] = None
+    point_number: int | None = None
+    shot_number: int | None = None
 
     # ── Shot identification ──────────────────────────────
     shot_type: str = ""           # forehand, backhand, serve, etc.
     stance: StanceType = StanceType.NEUTRAL
-    grip_type: Optional[str] = None  # eastern, semi_western, western, continental
+    grip_type: str | None = None  # eastern, semi_western, western, continental
 
     # ── Pose sequence ────────────────────────────────────
     frame_start: int = 0
@@ -83,17 +84,17 @@ class SwingAnalysis(BaseModel):
     )
 
     # ── Biomechanics ─────────────────────────────────────
-    hip_shoulder_separation_deg: Optional[float] = None
-    trunk_rotation_deg: Optional[float] = None
-    elbow_angle_at_contact_deg: Optional[float] = None
-    wrist_lag_frames: Optional[int] = None
-    racket_head_speed_proxy: Optional[float] = None
+    hip_shoulder_separation_deg: float | None = None
+    trunk_rotation_deg: float | None = None
+    elbow_angle_at_contact_deg: float | None = None
+    wrist_lag_frames: int | None = None
+    racket_head_speed_proxy: float | None = None
 
     # ── Detected issues ──────────────────────────────────
     detected_flaws: list[DetectedFlaw] = Field(default_factory=list)
 
     timestamp_ms: int = 0
-    analyzed_at: datetime = Field(default_factory=datetime.utcnow)
+    analyzed_at: datetime = Field(default_factory=utcnow)
 
 
 class DetectedFlaw(BaseModel):
@@ -102,7 +103,7 @@ class DetectedFlaw(BaseModel):
     description: str
     severity: CoachingPriority = CoachingPriority.MEDIUM
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
-    reference_frame: Optional[int] = None
+    reference_frame: int | None = None
     suggestion: str = ""
     # How many times this flaw has appeared in recent sessions
     recurrence_count: int = 0
@@ -116,7 +117,7 @@ class CoachingFeedback(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
     player_id: str
-    match_id: Optional[str] = None
+    match_id: str | None = None
 
     # ── The One Correction ───────────────────────────────
     primary_correction: str = Field(
@@ -124,7 +125,7 @@ class CoachingFeedback(BaseModel):
         description="The single most impactful thing to fix right now"
     )
     primary_correction_priority: CoachingPriority = CoachingPriority.HIGH
-    primary_correction_category: Optional[FlawCategory] = None
+    primary_correction_category: FlawCategory | None = None
 
     # ── Full analysis ────────────────────────────────────
     strengths: list[str] = Field(default_factory=list)
@@ -141,19 +142,19 @@ class CoachingFeedback(BaseModel):
         default=0.0, ge=0.0, le=10.0,
         description="Overall session performance score"
     )
-    improvement_vs_previous: Optional[float] = Field(
+    improvement_vs_previous: float | None = Field(
         default=None,
         description="Percentage improvement vs last session"
     )
 
     # ── Comparison ───────────────────────────────────────
-    comparison_to_reference: Optional[str] = Field(
+    comparison_to_reference: str | None = Field(
         default=None,
         description="How player compares to skill-appropriate reference"
     )
 
     # ── Metadata ─────────────────────────────────────────
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=utcnow)
     model_version: str = "1.0"
     confidence: float = 0.0
 
@@ -166,7 +167,7 @@ class DrillSuggestion(BaseModel):
     duration_minutes: int = 15
     difficulty: str = "intermediate"  # beginner | intermediate | advanced
     equipment_needed: list[str] = Field(default_factory=list)
-    video_reference_url: Optional[str] = None
+    video_reference_url: str | None = None
 
 
 class WeeklyGoal(BaseModel):
@@ -196,7 +197,7 @@ class WeeklyGoal(BaseModel):
         default_factory=list, description="Session IDs that informed this goal"
     )
     notes: str = ""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class PlayerProgressReport(BaseModel):
@@ -220,7 +221,7 @@ class PlayerProgressReport(BaseModel):
     # ── AI narrative ─────────────────────────────────────
     progress_summary: str = ""
     next_milestone: str = ""
-    estimated_ntrp_change: Optional[float] = None
+    estimated_ntrp_change: float | None = None
 
 
 class CoachingInsight(BaseModel):
@@ -255,4 +256,4 @@ class CoachingInsight(BaseModel):
     severity: float = Field(default=0.5, ge=0.0, le=1.0)
     first_seen_point: int = 0
     last_seen_point: int = 0
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
+    detected_at: datetime = Field(default_factory=utcnow)

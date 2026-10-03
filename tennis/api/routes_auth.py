@@ -4,18 +4,18 @@ Auth routes — JWT + Google OAuth authentication for TennisIQ.
 
 from __future__ import annotations
 
-import uuid
 import hashlib
-import secrets
 import logging
-from datetime import datetime, timedelta
-from typing import Optional
+import secrets
+import uuid
+from datetime import timedelta
 
+import jwt
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import jwt
 
 from tennis.config import settings
+from tennis.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +58,8 @@ def _create_token(user_id: str, email: str) -> str:
     payload = {
         "sub": user_id,
         "email": email,
-        "exp": datetime.utcnow() + timedelta(hours=settings.JWT_EXPIRY_HOURS),
-        "iat": datetime.utcnow(),
+        "exp": utcnow() + timedelta(hours=settings.JWT_EXPIRY_HOURS),
+        "iat": utcnow(),
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
@@ -78,7 +78,7 @@ def _create_or_get_user(email: str, name: str, auth_provider: str = "email") -> 
         "password_hash": "",
         "subscription_tier": "free",
         "auth_provider": auth_provider,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": utcnow().isoformat(),
     }
     _users[email] = user
     _users_by_id[user["id"]] = user
@@ -101,7 +101,7 @@ async def register(req: RegisterRequest):
         "password_hash": _hash_password(req.password, salt),
         "subscription_tier": "free",
         "auth_provider": "email",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": utcnow().isoformat(),
     }
     _users[email] = user
     _users_by_id[user["id"]] = user
@@ -156,8 +156,8 @@ async def google_auth(req: GoogleAuthRequest):
     """
     try:
         # Try to verify with google-auth library
-        from google.oauth2 import id_token as google_id_token
         from google.auth.transport import requests as google_requests
+        from google.oauth2 import id_token as google_id_token
 
         client_id = settings.GOOGLE_CLIENT_ID
         if not client_id:
@@ -187,10 +187,10 @@ async def google_auth(req: GoogleAuthRequest):
             name = idinfo.get("name", idinfo.get("given_name", ""))
             if not email:
                 raise HTTPException(status_code=400, detail="Token does not contain email")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - auth boundary: any decode/validation failure must map to 401
             raise HTTPException(status_code=401, detail=f"Invalid Google token: {e}")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - auth boundary: any verification failure must map to 401
         raise HTTPException(status_code=401, detail=f"Google token verification failed: {e}")
 
     # Create or get user

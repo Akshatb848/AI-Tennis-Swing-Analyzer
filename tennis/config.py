@@ -2,10 +2,10 @@
 Platform configuration — environment-driven settings for all modules.
 """
 
-import os
 from enum import Enum
-from pydantic_settings import BaseSettings
+
 from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Environment(str, Enum):
@@ -49,7 +49,6 @@ class Settings(BaseSettings):
     # ── ML / AI ──────────────────────────────────────────
     OPENAI_API_KEY: str = Field(default="")
     OPENAI_MODEL: str = "gpt-4o"
-    ML_MODELS_DIR: str = "./ml_models"
     INFERENCE_DEVICE: str = "cpu"  # cpu | coreml | cuda
 
     # ── Video Processing ─────────────────────────────────

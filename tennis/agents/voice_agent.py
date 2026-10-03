@@ -6,6 +6,7 @@ These events are played back through the browser's Web Speech API or
 an optional TTS service (OpenAI TTS if OPENAI_API_KEY is set).
 """
 from __future__ import annotations
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,6 @@ class VoiceAgent:
         """
         bio = context.get("biomechanics", {})
         coaching = context.get("coaching", {})
-        ball = context.get("ball", {})
         duration = context.get("duration_seconds", 30.0)
 
         frame_annotations = bio.get("frame_annotations", [])

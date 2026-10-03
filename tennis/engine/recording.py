@@ -6,14 +6,14 @@ Mirrors SwingVision: start recording, auto-detect everything, stop when done.
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
-from dataclasses import dataclass, field
 
 from tennis.engine.event_processor import EventProcessor
 from tennis.engine.scoring import ScoringEngine
 from tennis.models.match import MatchConfig, MatchMode
+from tennis.timeutil import utcnow
 
 
 class MatchType(str, Enum):
@@ -76,7 +76,7 @@ class SegmentedPoint:
     start_time_ms: int
     end_time_ms: int
     rally_length: int = 0
-    winner_id: Optional[str] = None
+    winner_id: str | None = None
     outcome: str = ""
     line_calls: list[dict] = field(default_factory=list)
     score_after: str = ""
@@ -88,7 +88,7 @@ class SegmentedGame:
     game_number: int
     set_number: int
     points: list[SegmentedPoint] = field(default_factory=list)
-    winner_id: Optional[str] = None
+    winner_id: str | None = None
     score_after: str = ""
 
 
@@ -97,7 +97,7 @@ class SegmentedSet:
     """A set auto-segmented from games."""
     set_number: int
     games: list[SegmentedGame] = field(default_factory=list)
-    winner_id: Optional[str] = None
+    winner_id: str | None = None
     final_score: str = ""
 
 
@@ -117,15 +117,15 @@ class RecordingSession:
     def __init__(self):
         self.id: str = str(uuid.uuid4())
         self.state: RecordingState = RecordingState.IDLE
-        self.setup_config: Optional[MatchSetupConfig] = None
-        self.started_at: Optional[datetime] = None
-        self.stopped_at: Optional[datetime] = None
+        self.setup_config: MatchSetupConfig | None = None
+        self.started_at: datetime | None = None
+        self.stopped_at: datetime | None = None
         self.frame_count: int = 0
         self.fps: float = 30.0
 
         # Sub-engines
-        self._event_processor: Optional[EventProcessor] = None
-        self._scoring_engine: Optional[ScoringEngine] = None
+        self._event_processor: EventProcessor | None = None
+        self._scoring_engine: ScoringEngine | None = None
 
         # Auto-segmentation state
         self._current_rally_start_frame: int = 0
@@ -141,7 +141,7 @@ class RecordingSession:
 
     # ── Setup ────────────────────────────────────────────────────────────────
 
-    def setup(self, config: Optional[MatchSetupConfig] = None) -> dict:
+    def setup(self, config: MatchSetupConfig | None = None) -> dict:
         """
         Configure match. Returns setup summary.
         If no config provided, uses defaults (singles, outdoor, auto-detect).
@@ -187,7 +187,7 @@ class RecordingSession:
             return {"status": "error", "message": "Setup required before recording"}
 
         self.state = RecordingState.RECORDING
-        self.started_at = datetime.utcnow()
+        self.started_at = utcnow()
         self.frame_count = 0
         return {"status": "recording", "session_id": self.id}
 
@@ -197,7 +197,7 @@ class RecordingSession:
             return {"status": "error", "message": "Not currently recording"}
 
         self.state = RecordingState.PROCESSING
-        self.stopped_at = datetime.utcnow()
+        self.stopped_at = utcnow()
 
         # Close any open rally
         if self._rally_active:
@@ -220,7 +220,7 @@ class RecordingSession:
 
     # ── Frame Processing ─────────────────────────────────────────────────────
 
-    def process_frame(self, ball_event=None, player_events=None) -> Optional[dict]:
+    def process_frame(self, ball_event=None, player_events=None) -> dict | None:
         """
         Process a single frame during recording.
         Returns any events generated (line calls, point outcomes).
@@ -302,7 +302,6 @@ class RecordingSession:
         # Update scoring engine
         if self._scoring_engine and point.winner_id:
             self._scoring_engine.score_point(point.winner_id)
-            state = self._scoring_engine.get_match_state()
             point.score_after = self._scoring_engine.get_score_display()
 
         self.points.append(point)
@@ -314,7 +313,6 @@ class RecordingSession:
         if not self._scoring_engine:
             return
 
-        state = self._scoring_engine.get_match_state()
         # Build games from point groupings
         current_game_points: list[SegmentedPoint] = []
         game_num = 0

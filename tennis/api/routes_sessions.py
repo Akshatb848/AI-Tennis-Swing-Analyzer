@@ -3,15 +3,19 @@ Session routes — CRUD operations for capture sessions.
 """
 
 from __future__ import annotations
+
 import uuid
-from datetime import datetime
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Query
 
-from tennis.models.session import (
-    CaptureSession, SessionMode, SessionStatus, SessionListResponse,
-)
 from tennis.models.match import MatchConfig
+from tennis.models.session import (
+    CaptureSession,
+    SessionListResponse,
+    SessionMode,
+    SessionStatus,
+)
+from tennis.timeutil import utcnow
 
 router = APIRouter()
 
@@ -22,9 +26,9 @@ _sessions: dict[str, CaptureSession] = {}
 @router.post("/", response_model=CaptureSession, status_code=201)
 async def create_session(
     mode: SessionMode = SessionMode.MATCH,
-    player_names: list[str] = ["Player 1", "Player 2"],
+    player_names: list[str] = ["Player 1", "Player 2"],  # noqa: B006 - FastAPI deep-copies parameter defaults per request; default is published in the OpenAPI schema
     court_surface: str = "hard",
-    venue_name: Optional[str] = None,
+    venue_name: str | None = None,
 ):
     """Create a new capture session."""
     session = CaptureSession(
@@ -43,8 +47,8 @@ async def create_session(
 async def list_sessions(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    mode: Optional[SessionMode] = None,
-    status: Optional[SessionStatus] = None,
+    mode: SessionMode | None = None,
+    status: SessionStatus | None = None,
 ):
     """List all sessions with filtering and pagination."""
     items = list(_sessions.values())
@@ -75,11 +79,11 @@ async def update_session_status(session_id: str, status: SessionStatus):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     session.status = status
-    session.updated_at = datetime.utcnow()
+    session.updated_at = utcnow()
     if status == SessionStatus.RECORDING:
-        session.processing_started_at = datetime.utcnow()
+        session.processing_started_at = utcnow()
     elif status == SessionStatus.COMPLETED:
-        session.processing_completed_at = datetime.utcnow()
+        session.processing_completed_at = utcnow()
     return {"id": session_id, "status": status}
 
 

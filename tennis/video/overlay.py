@@ -4,8 +4,8 @@ Renders real-time and post-match visual overlays on match video.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Optional
 from enum import Enum
 
 
@@ -124,7 +124,7 @@ class AnalyticsOverlay:
     """Side-panel analytics overlay."""
     stat_name: str = ""
     stat_value: str = ""
-    stat_comparison: Optional[str] = None
+    stat_comparison: str | None = None
     chart_type: str = "bar"  # bar, pie, radar
     chart_data: dict = field(default_factory=dict)
 

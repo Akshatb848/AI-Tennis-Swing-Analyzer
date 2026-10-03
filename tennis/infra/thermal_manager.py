@@ -10,9 +10,8 @@ Monitors processing latency and adjusts inference depth:
 from __future__ import annotations
 
 import logging
-import time
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 

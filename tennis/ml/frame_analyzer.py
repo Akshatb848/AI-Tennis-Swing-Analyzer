@@ -13,7 +13,6 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -45,8 +44,8 @@ class FrameDetections:
     inference_time_ms: float = 0.0
 
     # Ball detection
-    ball_bbox: Optional[BoundingBox] = None
-    ball_center: Optional[Point2D] = None
+    ball_bbox: BoundingBox | None = None
+    ball_center: Point2D | None = None
 
     # Player detections
     player_bboxes: list[BoundingBox] = field(default_factory=list)
@@ -175,7 +174,7 @@ class FrameAnalyzer:
 
     def _detect_ball_heuristic(
         self, frame: np.ndarray, w: int, h: int,
-    ) -> Optional[BoundingBox]:
+    ) -> BoundingBox | None:
         """Detect tennis ball using color filtering (yellow/green in HSV)."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -318,7 +317,7 @@ class FrameAnalyzer:
     @staticmethod
     def _line_intersection(
         line1: tuple, line2: tuple,
-    ) -> Optional[tuple[float, float]]:
+    ) -> tuple[float, float] | None:
         """Find intersection point of two line segments."""
         x1, y1, x2, y2 = line1
         x3, y3, x4, y4 = line2

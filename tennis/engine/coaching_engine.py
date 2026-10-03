@@ -11,10 +11,7 @@ This is where TennisIQ exceeds SwingVision:
 
 from __future__ import annotations
 
-import math
-import uuid
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import timedelta
 
 from tennis.models.coaching import (
     CoachingFeedback,
@@ -28,7 +25,7 @@ from tennis.models.coaching import (
     WeeklyGoal,
 )
 from tennis.models.player import PlayerProfile, PlayerSessionStats, PlayerStyleEmbedding
-
+from tennis.timeutil import utcnow
 
 # ── Reference profiles for comparison ────────────────────────────────────────
 
@@ -83,7 +80,6 @@ class CoachingEngine:
         if not sessions:
             return emb
 
-        latest = sessions[-1] if sessions else None
         avg_stats = self._average_stats(sessions)
 
         # Component scores
@@ -116,7 +112,7 @@ class CoachingEngine:
             embedding.append(0.0)
         emb.embedding = embedding[:64]
         emb.sessions_analyzed = len(sessions)
-        emb.updated_at = datetime.utcnow()
+        emb.updated_at = utcnow()
         return emb
 
     def analyze_swing(
@@ -156,8 +152,8 @@ class CoachingEngine:
     def generate_feedback(
         self, player: PlayerProfile, session_stats: PlayerSessionStats,
         swing_analyses: list[SwingAnalysis],
-        previous_feedback: Optional[CoachingFeedback] = None,
-        style_embedding: Optional[PlayerStyleEmbedding] = None,
+        previous_feedback: CoachingFeedback | None = None,
+        style_embedding: PlayerStyleEmbedding | None = None,
     ) -> CoachingFeedback:
         """Generate coaching feedback for a session."""
         feedback = CoachingFeedback(
@@ -219,10 +215,10 @@ class CoachingEngine:
     def generate_weekly_goal(
         self, player: PlayerProfile,
         recent_feedback: list[CoachingFeedback],
-        current_goal: Optional[WeeklyGoal] = None,
+        current_goal: WeeklyGoal | None = None,
     ) -> WeeklyGoal:
         """Generate an adaptive weekly goal."""
-        now = datetime.utcnow()
+        now = utcnow()
         goal = WeeklyGoal(
             player_id=player.id,
             primary_goal="",
@@ -323,7 +319,6 @@ class CoachingEngine:
         return max(1.0 - ue / 30.0, 0.0)
 
     def _calc_net_tendency(self, stats: dict) -> float:
-        nw = stats.get("net_points_won", 0)
         nt = stats.get("net_points_total", 1)
         return min(nt / 20.0, 1.0)
 
@@ -476,7 +471,7 @@ class ContinuousCoach:
         """Return all accumulated coaching insights, sorted by severity."""
         return sorted(self._insights.values(), key=lambda x: x.severity, reverse=True)
 
-    def _detect_repeated_errors(self) -> Optional[CoachingInsight]:
+    def _detect_repeated_errors(self) -> CoachingInsight | None:
         """Detect same shot type failing 3+ times in similar contexts."""
         if len(self._error_log) < 3:
             return None
@@ -510,7 +505,7 @@ class ContinuousCoach:
                 return insight
         return None
 
-    def _detect_poor_positioning(self, shots: list[dict]) -> Optional[CoachingInsight]:
+    def _detect_poor_positioning(self, shots: list[dict]) -> CoachingInsight | None:
         """Detect player in no-man's land or wrong position during defense."""
         no_mans_land_count = 0
         for s in shots:
@@ -546,7 +541,7 @@ class ContinuousCoach:
             return insight
         return None
 
-    def _detect_depth_degradation(self) -> Optional[CoachingInsight]:
+    def _detect_depth_degradation(self) -> CoachingInsight | None:
         """Detect shot depth decreasing over time (mid-court floaters)."""
         if len(self._shot_depths) < 10:
             return None
@@ -579,7 +574,7 @@ class ContinuousCoach:
             return insight
         return None
 
-    def _detect_late_preparation(self, player_positions: list[dict]) -> Optional[CoachingInsight]:
+    def _detect_late_preparation(self, player_positions: list[dict]) -> CoachingInsight | None:
         """Detect when player is not in ready position when ball crosses net."""
         late_count = 0
         for pos in player_positions:
@@ -607,7 +602,7 @@ class ContinuousCoach:
             return insight
         return None
 
-    def _detect_movement_inefficiency(self, recovery_x_positions: list[float]) -> Optional[CoachingInsight]:
+    def _detect_movement_inefficiency(self, recovery_x_positions: list[float]) -> CoachingInsight | None:
         """Detect not returning to center after shots."""
         off_center_count = 0
         for x in recovery_x_positions:

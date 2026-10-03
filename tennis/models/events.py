@@ -8,10 +8,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from tennis.timeutil import utcnow
 
 # ── Enums ────────────────────────────────────────────────────────────────────
 
@@ -94,35 +94,35 @@ class PlayerPose(BaseModel):
 
     # Named accessors for key joints
     @property
-    def left_shoulder(self) -> Optional[PoseKeypoint]:
+    def left_shoulder(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "left_shoulder"), None)
 
     @property
-    def right_shoulder(self) -> Optional[PoseKeypoint]:
+    def right_shoulder(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "right_shoulder"), None)
 
     @property
-    def left_elbow(self) -> Optional[PoseKeypoint]:
+    def left_elbow(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "left_elbow"), None)
 
     @property
-    def right_elbow(self) -> Optional[PoseKeypoint]:
+    def right_elbow(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "right_elbow"), None)
 
     @property
-    def left_wrist(self) -> Optional[PoseKeypoint]:
+    def left_wrist(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "left_wrist"), None)
 
     @property
-    def right_wrist(self) -> Optional[PoseKeypoint]:
+    def right_wrist(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "right_wrist"), None)
 
     @property
-    def left_hip(self) -> Optional[PoseKeypoint]:
+    def left_hip(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "left_hip"), None)
 
     @property
-    def right_hip(self) -> Optional[PoseKeypoint]:
+    def right_hip(self) -> PoseKeypoint | None:
         return next((k for k in self.keypoints if k.name == "right_hip"), None)
 
 
@@ -137,25 +137,25 @@ class BallEvent(BaseModel):
     session_id: str
 
     # ── Ball state ───────────────────────────────────────
-    position_image: Optional[BoundingBox] = None
-    position_court: Optional[Point2D] = None
-    position_3d: Optional[Point3D] = None
-    velocity_mph: Optional[float] = None
-    velocity_kph: Optional[float] = None
-    spin_proxy_rpm: Optional[float] = None
-    trajectory_angle_deg: Optional[float] = None
+    position_image: BoundingBox | None = None
+    position_court: Point2D | None = None
+    position_3d: Point3D | None = None
+    velocity_mph: float | None = None
+    velocity_kph: float | None = None
+    spin_proxy_rpm: float | None = None
+    trajectory_angle_deg: float | None = None
 
     # ── Detection quality ────────────────────────────────
     detection_confidence: float = 0.0
     is_occluded: bool = False
     is_interpolated: bool = False
-    tracker_id: Optional[int] = None
+    tracker_id: int | None = None
 
     # ── Line call (for bounces) ──────────────────────────
-    line_call: Optional[LineCallVerdict] = None
+    line_call: LineCallVerdict | None = None
     line_call_confidence: float = 0.0
-    distance_from_line_cm: Optional[float] = None
-    uncertainty_radius_cm: Optional[float] = None
+    distance_from_line_cm: float | None = None
+    uncertainty_radius_cm: float | None = None
 
 
 class PlayerEvent(BaseModel):
@@ -168,16 +168,16 @@ class PlayerEvent(BaseModel):
     player_id: str
 
     # ── Player state ─────────────────────────────────────
-    position_image: Optional[BoundingBox] = None
-    position_court: Optional[Point2D] = None
-    pose: Optional[PlayerPose] = None
-    court_zone: Optional[str] = None
-    velocity_mps: Optional[float] = None
-    facing_direction_deg: Optional[float] = None
+    position_image: BoundingBox | None = None
+    position_court: Point2D | None = None
+    pose: PlayerPose | None = None
+    court_zone: str | None = None
+    velocity_mps: float | None = None
+    facing_direction_deg: float | None = None
 
     # ── Detection quality ────────────────────────────────
     detection_confidence: float = 0.0
-    tracker_id: Optional[int] = None
+    tracker_id: int | None = None
     is_serving: bool = False
 
 
@@ -185,7 +185,7 @@ class RallyEvent(BaseModel):
     """A complete rally from serve to point conclusion."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
-    match_id: Optional[str] = None
+    match_id: str | None = None
     point_number: int
 
     # ── Timeline ─────────────────────────────────────────
@@ -197,7 +197,7 @@ class RallyEvent(BaseModel):
 
     # ── Rally content ────────────────────────────────────
     server_id: str
-    winner_id: Optional[str] = None
+    winner_id: str | None = None
     rally_length: int = 0
     shots: list[dict] = Field(default_factory=list, description="Ordered shot events")
     ball_events: list[str] = Field(
@@ -205,9 +205,9 @@ class RallyEvent(BaseModel):
     )
 
     # ── Outcome ──────────────────────────────────────────
-    outcome_type: Optional[str] = None
-    last_shot_type: Optional[str] = None
-    last_shot_player_id: Optional[str] = None
+    outcome_type: str | None = None
+    last_shot_type: str | None = None
+    last_shot_player_id: str | None = None
 
     # ── Analytics ────────────────────────────────────────
     max_shot_speed_mph: float = 0.0
@@ -222,7 +222,7 @@ class LineCallEvent(BaseModel):
     """A line call decision, potentially subject to challenge."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
-    match_id: Optional[str] = None
+    match_id: str | None = None
     rally_id: str
     ball_event_id: str
 
@@ -237,15 +237,15 @@ class LineCallEvent(BaseModel):
     # ── Challenge ────────────────────────────────────────
     is_challenged: bool = False
     challenge_status: ChallengeStatus = ChallengeStatus.PENDING
-    challenged_by_player_id: Optional[str] = None
-    challenge_timestamp_ms: Optional[int] = None
-    replay_frame_start: Optional[int] = None
-    replay_frame_end: Optional[int] = None
-    original_verdict: Optional[LineCallVerdict] = None
-    final_verdict: Optional[LineCallVerdict] = None
+    challenged_by_player_id: str | None = None
+    challenge_timestamp_ms: int | None = None
+    replay_frame_start: int | None = None
+    replay_frame_end: int | None = None
+    original_verdict: LineCallVerdict | None = None
+    final_verdict: LineCallVerdict | None = None
 
     timestamp_ms: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class EventBatch(BaseModel):

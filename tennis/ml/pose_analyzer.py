@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Optional
 from enum import Enum
 
 
@@ -51,7 +50,7 @@ class PoseFrame:
     frame_number: int = 0
     timestamp_ms: int = 0
     keypoints: dict[str, tuple[float, float, float]] = field(default_factory=dict)
-    joint_angles: Optional[JointAngles] = None
+    joint_angles: JointAngles | None = None
     swing_phase: SwingPhase = SwingPhase.READY
     court_position: tuple[float, float] = (0.0, 0.0)
 
@@ -104,7 +103,7 @@ class PoseAnalyzer:
         keypoints: list[tuple[float, float, float]],
         frame_number: int,
         court_position: tuple[float, float] = (0.0, 0.0),
-    ) -> Optional[SwingSequence]:
+    ) -> SwingSequence | None:
         """
         Process a frame of keypoints for one player.
         Returns a SwingSequence if a complete swing is detected.
@@ -141,9 +140,7 @@ class PoseAnalyzer:
         if player_id not in self._pending_swings:
             self._pending_swings[player_id] = []
 
-        if phase in (SwingPhase.PREPARATION, SwingPhase.BACKSWING, SwingPhase.FORWARD_SWING, SwingPhase.CONTACT):
-            self._pending_swings[player_id].append(pose_frame)
-        elif phase == SwingPhase.FOLLOW_THROUGH and self._pending_swings.get(player_id):
+        if phase in (SwingPhase.PREPARATION, SwingPhase.BACKSWING, SwingPhase.FORWARD_SWING, SwingPhase.CONTACT) or phase == SwingPhase.FOLLOW_THROUGH and self._pending_swings.get(player_id):
             self._pending_swings[player_id].append(pose_frame)
         elif phase == SwingPhase.RECOVERY and self._pending_swings.get(player_id):
             # Swing complete

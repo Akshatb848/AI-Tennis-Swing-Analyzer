@@ -6,21 +6,21 @@ Production-grade REST API for the Tennis Intelligence Platform.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from tennis.config import settings
-from tennis.api.routes_sessions import router as sessions_router
-from tennis.api.routes_matches import router as matches_router
-from tennis.api.routes_events import router as events_router
-from tennis.api.routes_stats import router as stats_router
-from tennis.api.routes_coaching import router as coaching_router
-from tennis.api.routes_video import router as video_router
-from tennis.api.routes_subscription import router as subscription_router
-from tennis.api.routes_recording import router as recording_router
-from tennis.api.routes_linecalls import router as linecalls_router
-from tennis.api.routes_upload import router as upload_router
-from tennis.api.routes_auth import router as auth_router
-from tennis.api.routes_analyze import router as analyze_router
 from tennis.api.routes_analytics import router as analytics_router
+from tennis.api.routes_analyze import router as analyze_router
+from tennis.api.routes_auth import router as auth_router
+from tennis.api.routes_coaching import router as coaching_router
+from tennis.api.routes_events import router as events_router
+from tennis.api.routes_linecalls import router as linecalls_router
+from tennis.api.routes_matches import router as matches_router
+from tennis.api.routes_recording import router as recording_router
 from tennis.api.routes_replay import router as replay_router
+from tennis.api.routes_sessions import router as sessions_router
+from tennis.api.routes_stats import router as stats_router
+from tennis.api.routes_subscription import router as subscription_router
+from tennis.api.routes_upload import router as upload_router
+from tennis.api.routes_video import router as video_router
+from tennis.config import settings
 
 
 def create_app() -> FastAPI:

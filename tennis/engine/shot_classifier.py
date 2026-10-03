@@ -6,8 +6,7 @@ Production-grade classification with confidence calibration.
 """
 
 from __future__ import annotations
-import math
-from typing import Optional
+
 from tennis.models.events import PlayerPose, Point2D
 from tennis.models.match import ShotType
 
@@ -36,16 +35,16 @@ class ShotClassifier:
 
     def classify(
         self,
-        ball_position: Optional[Point2D],
+        ball_position: Point2D | None,
         ball_velocity_mph: float,
         ball_trajectory_angle: float,
-        player_pose: Optional[PlayerPose],
-        player_position: Optional[Point2D],
+        player_pose: PlayerPose | None,
+        player_position: Point2D | None,
         shot_number_in_rally: int,
         is_serve: bool = False,
-        net_clearance_cm: Optional[float] = None,
-        ball_height_m: Optional[float] = None,
-        prev_trajectory_angle: Optional[float] = None,
+        net_clearance_cm: float | None = None,
+        ball_height_m: float | None = None,
+        prev_trajectory_angle: float | None = None,
     ) -> tuple[ShotType, float]:
         """Classify the shot type with confidence score.
 
@@ -99,9 +98,9 @@ class ShotClassifier:
                 conf = min(conf + 0.05, 0.95)
         return (ShotType.FOREHAND if side == "fh" else ShotType.BACKHAND), conf
 
-    def _determine_side(self, pose: Optional[PlayerPose],
-                        player_pos: Optional[Point2D],
-                        ball_pos: Optional[Point2D]) -> str:
+    def _determine_side(self, pose: PlayerPose | None,
+                        player_pos: Point2D | None,
+                        ball_pos: Point2D | None) -> str:
         """Determine forehand or backhand side using pose and position data.
 
         Priority:
@@ -128,18 +127,20 @@ class ShotClassifier:
 
         return "fh"  # default
 
-    def _is_smash(self, ball_height_m: Optional[float],
+    def _is_smash(self, ball_height_m: float | None,
                   trajectory_angle: float,
-                  player_position: Optional[Point2D]) -> bool:
+                  player_position: Point2D | None) -> bool:
         """Detect smash/overhead conditions."""
-        if ball_height_m and ball_height_m > self.SMASH_MIN_HEIGHT:
-            if trajectory_angle < -20:  # downward trajectory
-                if player_position and abs(player_position.y) < self.SMASH_MAX_NET_DIST:
-                    return True
-        return False
+        return bool(
+            ball_height_m
+            and ball_height_m > self.SMASH_MIN_HEIGHT
+            and trajectory_angle < -20  # downward trajectory
+            and player_position
+            and abs(player_position.y) < self.SMASH_MAX_NET_DIST
+        )
 
     def _is_slice(self, trajectory_angle: float, speed_mph: float,
-                  pose: Optional[PlayerPose]) -> bool:
+                  pose: PlayerPose | None) -> bool:
         """Detect slice shot from trajectory and speed."""
         if trajectory_angle < self.SLICE_MAX_ANGLE and speed_mph < self.SLICE_MAX_SPEED:
             return True

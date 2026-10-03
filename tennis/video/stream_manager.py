@@ -13,7 +13,8 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+
+from tennis.timeutil import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +52,8 @@ class StreamState:
     frames_processed: int = 0
     uptime_seconds: float = 0.0
     output_url: str = ""
-    started_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    started_at: datetime | None = None
+    error_message: str | None = None
 
 
 class StreamManager:
@@ -94,7 +95,7 @@ class StreamManager:
             return False
 
         state.status = StreamStatus.LIVE
-        state.started_at = datetime.utcnow()
+        state.started_at = utcnow()
 
         # In production: start ffmpeg process for RTMP → HLS
         # ffmpeg -i rtmp://input -c:v copy -f hls -hls_time 2 -hls_list_size 5 output.m3u8
@@ -109,13 +110,13 @@ class StreamManager:
 
         state.status = StreamStatus.STOPPED
         if state.started_at:
-            state.uptime_seconds = (datetime.utcnow() - state.started_at).total_seconds()
+            state.uptime_seconds = (utcnow() - state.started_at).total_seconds()
 
         logger.info("Stream %s stopped after %.0fs", stream_id, state.uptime_seconds)
         return True
 
     def add_overlay_frame(
-        self, stream_id: str, score: str = "", line_call: Optional[dict] = None,
+        self, stream_id: str, score: str = "", line_call: dict | None = None,
     ):
         """Update overlay data for next frame compositing."""
         state = self._streams.get(stream_id)
@@ -124,7 +125,7 @@ class StreamManager:
         state.frames_processed += 1
         # In production: composite overlay onto video frames
 
-    def get_stream_state(self, stream_id: str) -> Optional[StreamState]:
+    def get_stream_state(self, stream_id: str) -> StreamState | None:
         """Get current stream state."""
         return self._streams.get(stream_id)
 

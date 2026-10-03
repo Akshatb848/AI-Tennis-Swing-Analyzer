@@ -9,18 +9,16 @@ The orchestrator returns a unified MoEResult containing all coaching data.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Optional
 
-from .court_agent import CourtAgent
 from .ball_agent import BallAgent
-from .player_agent import PlayerAgent
 from .biomechanics_agent import BiomechanicsAgent
-from .strategy_agent import StrategyAgent
 from .coaching_agent import CoachingAgent
+from .court_agent import CourtAgent
+from .player_agent import PlayerAgent
+from .strategy_agent import StrategyAgent
 from .voice_agent import VoiceAgent
 
 logger = logging.getLogger(__name__)
@@ -131,7 +129,7 @@ class MoEOrchestrator:
             logger.info("Agent %s completed in %.2fs", name, time.monotonic() - t)
             return out
         except Exception as exc:
-            logger.exception("Agent %s failed: %s", name, exc)
+            logger.exception("Agent %s failed", name)
             return {"error": str(exc), "agent": name}
 
     def _build_frame_overlays(self, result: MoEResult) -> list:

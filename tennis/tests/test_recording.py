@@ -1,9 +1,12 @@
 """Tests for the recording flow — setup, state transitions, auto-segmentation."""
 
-import pytest
 from tennis.engine.recording import (
-    RecordingSession, MatchSetupConfig, MatchType, Environment,
-    Handedness, RecordingState,
+    Environment,
+    Handedness,
+    MatchSetupConfig,
+    MatchType,
+    RecordingSession,
+    RecordingState,
 )
 
 

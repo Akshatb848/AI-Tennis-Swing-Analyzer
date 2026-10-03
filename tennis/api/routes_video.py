@@ -3,9 +3,10 @@ Video routes — Upload, processing, highlights, and overlay management.
 """
 
 from __future__ import annotations
+
 import uuid
-from typing import Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ _videos: dict[str, dict] = {}
 @router.post("/upload")
 async def upload_video(
     session_id: str,
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008 - idiomatic FastAPI parameter declaration
 ):
     """Upload a match video for processing."""
     video_id = str(uuid.uuid4())

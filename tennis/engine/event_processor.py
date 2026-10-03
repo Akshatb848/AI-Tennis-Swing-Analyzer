@@ -12,13 +12,10 @@ Handles:
 from __future__ import annotations
 
 import math
-import uuid
-from typing import Optional
 
 from tennis.engine.shot_classifier import ShotClassifier
 from tennis.models.events import (
     BallEvent,
-    BounceConfidence,
     EventType,
     LineCallEvent,
     LineCallVerdict,
@@ -32,7 +29,6 @@ from tennis.models.match import (
     ShotDetail,
     ShotType,
 )
-
 
 # ── Court Geometry (ITF standard dimensions in meters) ───────────────────────
 
@@ -205,7 +201,7 @@ class EventProcessor:
         # Tracking state
         self._last_hit_frame: int = 0
         self._last_bounce_frame: int = 0
-        self._last_hit_player: Optional[str] = None
+        self._last_hit_player: str | None = None
         self._rally_active: bool = False
         self._shot_count: int = 0
 
@@ -213,14 +209,14 @@ class EventProcessor:
         self._player_ids: list[str] = []
 
         # Shot detection state for trajectory analysis
-        self._prev_trajectory_angle: Optional[float] = None
+        self._prev_trajectory_angle: float | None = None
         self._trajectory_speeds: list[float] = []  # recent speeds for spike detection
 
     def process_ball_event(
         self,
         event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
-    ) -> Optional[dict]:
+        player_events: list[PlayerEvent] | None = None,
+    ) -> dict | None:
         """
         Process a ball event and return any tennis events generated.
         
@@ -261,7 +257,7 @@ class EventProcessor:
 
         return result if result else None
 
-    def _process_bounce(self, event: BallEvent) -> Optional[LineCallEvent]:
+    def _process_bounce(self, event: BallEvent) -> LineCallEvent | None:
         """Process a ball bounce and generate a line call."""
         if not event.position_court:
             return None
@@ -275,19 +271,14 @@ class EventProcessor:
         # Determine confidence based on distance from line
         if dist_cm > 20:
             confidence = 0.99
-            bounce_conf = BounceConfidence.HIGH
         elif dist_cm > 10:
             confidence = 0.90
-            bounce_conf = BounceConfidence.HIGH
         elif dist_cm > 5:
             confidence = 0.80
-            bounce_conf = BounceConfidence.MEDIUM
         elif dist_cm > 2:
             confidence = 0.65
-            bounce_conf = BounceConfidence.LOW
         else:
             confidence = 0.50
-            bounce_conf = BounceConfidence.UNCERTAIN
 
         # Update ball event
         event.line_call = LineCallVerdict.IN if is_in else LineCallVerdict.OUT
@@ -317,7 +308,7 @@ class EventProcessor:
     def _process_hit(
         self,
         event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
+        player_events: list[PlayerEvent] | None = None,
     ) -> None:
         """Process a ball hit event with trajectory-based detection."""
         self._shot_count += 1
@@ -335,7 +326,7 @@ class EventProcessor:
                     self._player_ids.append(pe.player_id)
 
         # Classify the shot using the full classifier
-        shot_type, shot_confidence = self._classify_shot(event, player_events)
+        shot_type, _shot_confidence = self._classify_shot(event, player_events)
         player_id = self._determine_hitting_player(event, player_events)
         self._last_hit_player = player_id
 
@@ -375,8 +366,8 @@ class EventProcessor:
         self,
         event: BallEvent,
         outcome_type: PointOutcomeType,
-        winner_id: Optional[str] = None,
-    ) -> Optional[RallyEvent]:
+        winner_id: str | None = None,
+    ) -> RallyEvent | None:
         """End the current rally and produce a RallyEvent."""
         if not self._rally_active:
             return None
@@ -426,7 +417,7 @@ class EventProcessor:
     def _classify_shot(
         self,
         event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
+        player_events: list[PlayerEvent] | None = None,
     ) -> tuple[ShotType, float]:
         """Classify the shot type using full trajectory + pose analysis."""
         # Extract pose from nearest player
@@ -441,7 +432,6 @@ class EventProcessor:
         # Ball trajectory angle (compute from velocity if available)
         trajectory_angle = 0.0
         if event.velocity_mph:
-            speed = event.velocity_mph
             trajectory_angle = self._compute_trajectory_angle(event)
 
         shot_type, confidence = self.shot_classifier.classify(
@@ -471,7 +461,7 @@ class EventProcessor:
 
     def _find_nearest_player(
         self, ball_event: BallEvent, player_events: list[PlayerEvent]
-    ) -> Optional[PlayerEvent]:
+    ) -> PlayerEvent | None:
         """Find the player closest to the ball position."""
         if not ball_event.position_court:
             return player_events[0] if player_events else None
@@ -491,8 +481,8 @@ class EventProcessor:
     def _determine_hitting_player(
         self,
         ball_event: BallEvent,
-        player_events: Optional[list[PlayerEvent]] = None,
-    ) -> Optional[str]:
+        player_events: list[PlayerEvent] | None = None,
+    ) -> str | None:
         """Determine which player hit the ball.
 
         Uses two signals:
@@ -526,7 +516,7 @@ class EventProcessor:
 
         return closest_id or expected
 
-    def _alternate_player(self) -> Optional[str]:
+    def _alternate_player(self) -> str | None:
         """Get the expected next hitter via alternation logic."""
         if not self._last_hit_player or len(self._player_ids) < 2:
             return self._last_hit_player
@@ -535,7 +525,7 @@ class EventProcessor:
                 return pid
         return self._last_hit_player
 
-    def _get_opponent(self, player_id: Optional[str]) -> Optional[str]:
+    def _get_opponent(self, player_id: str | None) -> str | None:
         """Get opponent player ID using tracked player roster."""
         if not player_id:
             return None
@@ -564,7 +554,7 @@ class EventProcessor:
         score += min(close_calls * 0.1, 0.2)
 
         # Variety of shots
-        shot_types = set(s.shot_type for s in self.current_rally_shots)
+        shot_types = {s.shot_type for s in self.current_rally_shots}
         score += min(len(shot_types) / 6.0, 0.2)
 
         return min(score, 1.0)
