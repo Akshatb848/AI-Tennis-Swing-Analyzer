@@ -3,10 +3,11 @@ name: TennisIQ CI/CD
 on:
   push:
     branches: [main, develop]
-    paths: ['tennis/**']
+    paths: ['tennis/**', '.github/workflows/tennisiq-ci.yml']
   pull_request:
     branches: [main]
-    paths: ['tennis/**']
+    paths: ['tennis/**', '.github/workflows/tennisiq-ci.yml']
+  workflow_dispatch:
 
 jobs:
   test:
