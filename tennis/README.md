@@ -1,6 +1,8 @@
 # TennisIQ — AI-First Tennis Intelligence Platform
 
-> Single-camera AI tennis intelligence that matches and exceeds SwingVision in coaching, accuracy, and scalability.
+> Single-camera tennis analysis: upload a video, get court/ball/player detection, match stats and a coaching report.
+>
+> See the [root README](../README.md) for how to run it and for what the code does today.
 
 ## Architecture
 
@@ -14,7 +16,7 @@ tennis/
 ├── dashboard/       # Streamlit analytics dashboard
 ├── ios/             # Swift scaffolding (capture, ML, UI, Watch, engine)
 ├── infra/           # Docker, Nginx, monitoring, security
-└── tests/           # 6 test files with 70+ tests
+└── tests/           # pytest suite
 ```
 
 ## Quick Start
@@ -36,7 +38,10 @@ streamlit run tennis/dashboard/tennis_dashboard.py
 docker-compose -f tennis/infra/docker-compose.yml up
 ```
 
-## ML Model Stack
+## ML Model Stack (design targets, not implemented)
+
+> These are the specifications in `tennis/ml/model_specs.py`. No trained weights ship with this repo and none of these
+> parameter counts or latencies have been measured; today's pipeline uses classical OpenCV heuristics instead.
 
 | Model | Backbone | Params | Latency | Task |
 |-------|----------|--------|---------|------|
@@ -44,9 +49,9 @@ docker-compose -f tennis/infra/docker-compose.yml up
 | PlayerNet | MoveNet Thunder | 5.4M | 12ms | Player detection + pose |
 | CourtNet | ResNet18-Lite | 2.1M | 6ms | Court line detection |
 | ShotNet | 1D-CNN + LSTM | 0.9M | 3ms | Shot classification |
-| **Total** | | **11.6M** | **29ms** | *<50ms target* ✓ |
+| **Total (target)** | | **11.6M** | **29ms** | *<50ms target* |
 
-## Subscription Tiers
+## Subscription Tiers (planned)
 
 | Feature | Free | Pro | Elite |
 |---------|------|-----|-------|
@@ -64,4 +69,4 @@ Start the server and visit `http://localhost:8000/docs` for interactive Swagger 
 
 ## License
 
-Proprietary — All rights reserved.
+MIT, see [LICENSE](../LICENSE).

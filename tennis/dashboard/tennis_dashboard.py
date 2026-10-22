@@ -12,12 +12,20 @@ Data Source:
 - Fallback to sample data with "Demo Data" banner
 """
 
+import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+
+# `streamlit run tennis/dashboard/tennis_dashboard.py` puts this file's folder on
+# sys.path, not the repo root, so `import tennis` fails without this.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from tennis.dashboard.data_provider import (
     DashboardDataProvider,

@@ -30,3 +30,13 @@ uploads/
 test_output.txt
 *.mp4
 *.mp
+
+# Local environments, caches and secrets
+.venv/
+.ruff_cache/
+.env.*
+!.env.example
+*.db
+output/
+streams/
+.DS_Store
